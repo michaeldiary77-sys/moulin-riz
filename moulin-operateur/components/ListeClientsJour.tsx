@@ -21,11 +21,13 @@ type Filtre = 'tout' | 'en_attente' | 'paye_kpk' | 'paye_ar';
  * long-press. La barre de filtres est fixe en bas du composant.
  */
 export function ListeClientsJour({
+  dateAffichee,
   refreshKey,
   onClientPresse,
   onModifierPresse,
   onSupprimerReussie,
 }: {
+  dateAffichee: string;
   refreshKey: number;
   onClientPresse: (client: ClientJour) => void;
   onModifierPresse: (client: ClientJour) => void;
@@ -37,21 +39,21 @@ export function ListeClientsJour({
   const [filtre, setFiltre] = useState<Filtre>('en_attente');
   const [recherche, setRecherche] = useState('');
   const [clientMenuOuvert, setClientMenuOuvert] = useState<ClientJour | null>(null);
-  const date = dateDuJourLocal();
   const rechercheRef = useRef<TextInput>(null);
   useStabiliteClavier([rechercheRef]);
+  const lectureSeule = dateAffichee < dateDuJourLocal();
 
   useEffect(() => {
-    listerClientsDuJour(date)
+    listerClientsDuJour(dateAffichee)
       .then(setClients)
       .catch((error) => {
         console.error('Erreur lors du chargement des clients :', error);
       });
-  }, [date, refreshKey]);
+  }, [dateAffichee, refreshKey]);
 
   // Rechargement local (après suppression) sans attendre le parent.
   function rechargerListe() {
-    listerClientsDuJour(date)
+    listerClientsDuJour(dateAffichee)
       .then(setClients)
       .catch((error) => {
         console.error('Erreur lors du rechargement des clients :', error);
@@ -136,24 +138,24 @@ export function ListeClientsJour({
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.listeScroll} contentContainerStyle={styles.listeContenu}>
-        <TextInput
-          style={styles.recherche}
-          value={recherche}
-          onChangeText={setRecherche}
-          placeholder="Rechercher (nom, heure, kg)"
-          placeholderTextColor={theme.colors.onSurfaceVariant}
-          ref={rechercheRef}
-        />
+      <TextInput
+        style={styles.recherche}
+        value={recherche}
+        onChangeText={setRecherche}
+        placeholder="Rechercher (nom, heure, kg)"
+        placeholderTextColor={theme.colors.onSurfaceVariant}
+        ref={rechercheRef}
+      />
 
+      <ScrollView style={styles.listeScroll} contentContainerStyle={styles.listeContenu}>
         {clientsFiltres.length === 0 ? (
           <Text style={styles.vide}>Aucun client pour l'instant</Text>
         ) : (
           clientsFiltres.map((c) => (
             <Pressable
               key={c.id}
-              disabled={c.statut !== 'en_attente'}
-              onLongPress={() => ouvrirMenuClient(c)}
+              disabled={lectureSeule || c.statut !== 'en_attente'}
+              onLongPress={lectureSeule ? undefined : () => ouvrirMenuClient(c)}
               style={[
                 styles.carte,
                 { borderLeftColor: couleurBordure(c) },
@@ -165,15 +167,18 @@ export function ListeClientsJour({
                 </Text>
               </View>
               <View style={styles.carteDroite}>
-                {c.statut === 'en_attente' && (
-                  <Pressable style={styles.boutonPayer} onPress={() => onClientPresse(c)}>
-                    <MaterialCommunityIcons
-                      name="cash"
-                      size={20}
-                      color={theme.colors.onPrimary}
-                    />
-                  </Pressable>
-                )}
+                {c.statut === 'en_attente' &&
+                  (lectureSeule ? (
+                    <Text style={styles.enAttenteText}>En attente</Text>
+                  ) : (
+                    <Pressable style={styles.boutonPayer} onPress={() => onClientPresse(c)}>
+                      <MaterialCommunityIcons
+                        name="cash"
+                        size={20}
+                        color={theme.colors.onPrimary}
+                      />
+                    </Pressable>
+                  ))}
                 {c.statut === 'paye' && <Text style={styles.payeText}>Payé</Text>}
                 {c.statut === 'non_paye' && (
                   <MaterialCommunityIcons
@@ -280,6 +285,11 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     payeText: {
       color: theme.colors.success,
       fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
+    },
+    enAttenteText: {
+      color: theme.colors.onSurfaceVariant,
+      fontFamily: theme.fontFamilies.body,
       fontSize: theme.fontSizes.bodyMd,
     },
     vide: {

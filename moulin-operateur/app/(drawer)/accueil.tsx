@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
@@ -20,6 +21,14 @@ export default function AccueilScreen() {
   const [popupNouveauVisible, setPopupNouveauVisible] = useState(false);
   const [clientAEncaisser, setClientAEncaisser] = useState<ClientJour | null>(null);
   const [clientAModifier, setClientAModifier] = useState<ClientJour | null>(null);
+  const [dateSelectionnee, setDateSelectionnee] = useState(() => new Date());
+  const [afficherPicker, setAfficherPicker] = useState(false);
+
+  // Date au format "AAAA-MM-JJ" construite depuis la date choisie.
+  const annee = dateSelectionnee.getFullYear();
+  const mois = String(dateSelectionnee.getMonth() + 1).padStart(2, '0');
+  const jour = String(dateSelectionnee.getDate()).padStart(2, '0');
+  const dateAffichee = `${annee}-${mois}-${jour}`;
 
   return (
     <View style={styles.container}>
@@ -45,14 +54,44 @@ export default function AccueilScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <Pressable style={styles.dateBar} onPress={() => setAfficherPicker(true)}>
+        <MaterialCommunityIcons name="calendar" size={22} color={theme.colors.primary} />
+        <Text style={styles.dateBarText}>
+          {dateSelectionnee.toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </Text>
+        <Pressable
+          style={styles.aujourdhuiButton}
+          onPress={() => setDateSelectionnee(new Date())}>
+          <Text style={styles.aujourdhuiButtonText}>Aujourd'hui</Text>
+        </Pressable>
+      </Pressable>
+
+      {afficherPicker && (
+        <DateTimePicker
+          value={dateSelectionnee}
+          mode="date"
+          onChange={(event, date) => {
+            setAfficherPicker(false);
+            if (date) {
+              setDateSelectionnee(date);
+            }
+          }}
+        />
+      )}
+
+      <View style={styles.listeWrapper}>
         <ListeClientsJour
+          dateAffichee={dateAffichee}
           refreshKey={refreshKey}
           onClientPresse={(client) => setClientAEncaisser(client)}
           onModifierPresse={(client) => setClientAModifier(client)}
           onSupprimerReussie={() => setRefreshKey((k) => k + 1)}
         />
-      </ScrollView>
+      </View>
 
       <Pressable style={styles.fab} onPress={() => setPopupNouveauVisible(true)}>
         <MaterialCommunityIcons name="plus" size={32} color={theme.colors.onPrimary} />
@@ -60,6 +99,7 @@ export default function AccueilScreen() {
 
       <PopupNouveauClient
         visible={popupNouveauVisible}
+        dateActuelleVisualisee={dateAffichee}
         profilNom={profilActif?.nom ?? null}
         onFerme={() => setPopupNouveauVisible(false)}
         onClientAjoute={() => setRefreshKey((k) => k + 1)}
@@ -135,13 +175,35 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
     },
-    scroll: {
-      flex: 1,
-    },
-    scrollContent: {
+    dateBar: {
+      backgroundColor: theme.colors.surface,
       padding: theme.spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
       gap: theme.spacing.sm,
-      paddingBottom: theme.spacing.xl + theme.spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outline,
+    },
+    dateBarText: {
+      flex: 1,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
+      color: theme.colors.onSurface,
+    },
+    aujourdhuiButton: {
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      borderRadius: theme.radius.md,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+    },
+    aujourdhuiButtonText: {
+      color: theme.colors.primary,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.labelMd,
+    },
+    listeWrapper: {
+      flex: 1,
     },
     fab: {
       position: 'absolute',

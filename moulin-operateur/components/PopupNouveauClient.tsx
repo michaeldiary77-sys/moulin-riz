@@ -13,11 +13,13 @@ import { useAppTheme } from '@/lib/theme/useAppTheme';
  */
 export function PopupNouveauClient({
   visible,
+  dateActuelleVisualisee,
   profilNom,
   onFerme,
   onClientAjoute,
 }: {
   visible: boolean;
+  dateActuelleVisualisee: string;
   profilNom: string | null;
   onFerme: () => void;
   onClientAjoute: () => void;
@@ -39,6 +41,13 @@ export function PopupNouveauClient({
   }
 
   async function handleAjouter() {
+    const aujourdhui = dateDuJourLocal();
+    if (dateActuelleVisualisee !== aujourdhui && dateActuelleVisualisee < aujourdhui) {
+      setErreur(
+        "Impossible d'ajouter un nouveau client pour une date passée. Revenez à aujourd'hui.",
+      );
+      return;
+    }
     const nomNettoye = nom.trim();
     const kgNum = Number(kg);
     if (!nomNettoye) {
