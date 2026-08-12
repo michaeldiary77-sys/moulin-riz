@@ -15,6 +15,7 @@ export default function TarifsScreen() {
   const [arParKg, setArParKg] = useState('');
   const [arParKpk, setArParKpk] = useState('');
   const [enregistre, setEnregistre] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
   const arParKgRef = useRef<TextInput>(null);
   const arParKpkRef = useRef<TextInput>(null);
   useStabiliteClavier([arParKgRef, arParKpkRef]);
@@ -36,10 +37,20 @@ export default function TarifsScreen() {
   }, []);
 
   async function handleEnregistrer() {
+    const kg = Number(arParKg);
+    const kpk = Number(arParKpk);
+    if (!Number.isFinite(kg) || kg <= 0 || !Number.isFinite(kpk) || kpk <= 0) {
+      setErreur('Veuillez saisir des tarifs strictement supérieurs à 0.');
+      setEnregistre(false);
+      return;
+    }
     try {
-      await definirTarifs(Number(arParKg), Number(arParKpk));
+      await definirTarifs(kg, kpk);
       setEnregistre(true);
+      setErreur(null);
     } catch (error) {
+      setErreur(error instanceof Error ? error.message : String(error));
+      setEnregistre(false);
       console.error('Erreur lors de l\'enregistrement des tarifs :', error);
     }
   }
@@ -113,7 +124,7 @@ export default function TarifsScreen() {
         />
         <Text style={styles.infoText}>
           Ces nouveaux tarifs seront appliqués immédiatement pour toutes les transactions saisies
-          par vos opérateurs à partir de l'enregistrement.
+          par vos opérateurs à partir de l&apos;enregistrement.
         </Text>
       </View>
 
@@ -122,6 +133,7 @@ export default function TarifsScreen() {
         <Text style={styles.buttonText}>Enregistrer les tarifs</Text>
       </Pressable>
 
+      {erreur && <Text style={styles.erreur}>{erreur}</Text>}
       {enregistre && <Text style={styles.confirmation}>Tarifs enregistrés</Text>}
     </ScrollView>
   );
@@ -260,6 +272,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     confirmation: {
       color: theme.colors.success,
+      fontFamily: theme.fontFamilies.body,
+      fontSize: theme.fontSizes.bodyMd,
+      textAlign: 'center',
+    },
+    erreur: {
+      color: theme.colors.error,
       fontFamily: theme.fontFamilies.body,
       fontSize: theme.fontSizes.bodyMd,
       textAlign: 'center',

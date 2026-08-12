@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -19,15 +20,35 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Tarifs',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="journee"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Journées',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="calendar-check" size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="dettes"
+        options={{
+          title: 'Dettes',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="cash-sync" size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="synchronisation"
+        options={{
+          title: 'Sync',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="sync" size={26} color={color} />
+          ),
         }}
       />
     </Tabs>

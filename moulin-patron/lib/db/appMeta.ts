@@ -27,11 +27,14 @@ export async function obtenirDeviceId(): Promise<string> {
 export async function obtenirProchaineSeq(): Promise<number> {
   const db = await openDatabase();
   const deviceId = await obtenirDeviceId();
-  const ligne = await db.getFirstAsync<{ nextSeq: number }>(
-    'SELECT nextSeq FROM app_meta WHERE deviceId = ?',
-    deviceId,
-  );
-  const seq = ligne?.nextSeq ?? 1;
-  await db.runAsync('UPDATE app_meta SET nextSeq = ? WHERE deviceId = ?', seq + 1, deviceId);
+  let seq = 1;
+  await db.withExclusiveTransactionAsync(async () => {
+    const ligne = await db.getFirstAsync<{ nextSeq: number }>(
+      'SELECT nextSeq FROM app_meta WHERE deviceId = ?',
+      deviceId,
+    );
+    seq = ligne?.nextSeq ?? 1;
+    await db.runAsync('UPDATE app_meta SET nextSeq = ? WHERE deviceId = ?', seq + 1, deviceId);
+  });
   return seq;
 }
