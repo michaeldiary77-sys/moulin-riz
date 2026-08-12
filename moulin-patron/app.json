@@ -22,7 +22,6 @@
       "predictiveBackGestureEnabled": false
     },
     "androidNavigationBar": {
-      "visible": "always",
       "barStyle": "dark-content",
       "backgroundColor": "#000000",
       "enforceContrast": true
