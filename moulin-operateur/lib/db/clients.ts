@@ -35,6 +35,31 @@ export async function listerClientsDuJour(date: string): Promise<ClientJour[]> {
   );
 }
 
+export type Jour = {
+  date: string;
+  totalClients: number;
+  totalKg: number;
+  nonPaye: number;
+};
+
+/**
+ * Liste les journées ayant des clients (dates distinctes) avec quelques
+ * agrégats par jour. Utilisé par l'application Patron pour la supervision
+ * des journées importées.
+ */
+export async function listerJours(): Promise<Jour[]> {
+  const db = await openDatabase();
+  return db.getAllAsync<Jour>(
+    `SELECT date,
+            COUNT(*) AS totalClients,
+            COALESCE(SUM(kg), 0) AS totalKg,
+            COALESCE(SUM(CASE WHEN statut = 'non_paye' THEN 1 ELSE 0 END), 0) AS nonPaye
+     FROM clients_jour
+     GROUP BY date
+     ORDER BY date DESC`,
+  );
+}
+
 /**
  * Ajoute un client à la journée (étape 1 : accueil, statut "en_attente").
  * Règle de blocage : un même nom ne peut pas apparaître deux fois pour une
@@ -92,6 +117,15 @@ export async function encaisserClient(params: {
   statut: 'paye' | 'non_paye';
 }): Promise<void> {
   const db = await openDatabase();
+
+  const client = await db.getFirstAsync<{ statut: string }>(
+    'SELECT statut FROM clients_jour WHERE id = ?',
+    params.id,
+  );
+  if (!client || client.statut !== 'en_attente') {
+    throw new Error('Ce client n\'est plus en attente de paiement.');
+  }
+
   await db.runAsync(
     'UPDATE clients_jour SET modePaiement = ?, montant = ?, statut = ?, encaisseAt = ? WHERE id = ?',
     params.modePaiement,
@@ -195,9 +229,24 @@ export async function cloturerJoursPrecedents(): Promise<number> {
         motif: 'Non payé - clôture automatique',
         origine: 'auto',
         correctionDe: null,
+        clientJourId: client.id,
       });
       traites++;
     } catch (error) {
+      // Si la création de la dette échoue, on restaure le client en
+      // "en_attente" : sinon il resterait "non_paye" sans dette associée et
+      // ne serait plus jamais retraité par la clôture suivante.
+      try {
+        await db.runAsync(
+          "UPDATE clients_jour SET statut = 'en_attente', modePaiement = NULL, montant = NULL, encaisseAt = NULL WHERE id = ?",
+          client.id,
+        );
+      } catch (secondaire) {
+        console.error(
+          `Échec de la restauration du client ${client.id} (${client.nom}) :`,
+          secondaire,
+        );
+      }
       console.error(
         `Erreur lors de la clôture du client ${client.id} (${client.nom}) :`,
         error,

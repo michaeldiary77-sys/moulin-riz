@@ -5,25 +5,25 @@ import { ajouterDette } from '@/lib/db/dettes';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
-type TypeDette = 'dette_plus' | 'dette_moins';
-
 /**
- * Popup d'ajout manuel d'un mouvement de dette (Dette+ / Dette-),
- * toujours avec origine "manuel" (les Dette+ automatiques passent par
+ * Popup d'ajout manuel d'un mouvement de dette, avec un type fixe
+ * (dette_plus ou dette_moins) imposé par l'écran qui l'affiche. Toujours
+ * avec origine "manuel" (les Dette+ automatiques passent par
  * cloturerJoursPrecedents(), pas par ce popup).
  */
 export function PopupAjouterDette({
   visible,
+  typeDette,
   onFermer,
   onAjoutReussi,
 }: {
   visible: boolean;
+  typeDette: 'dette_plus' | 'dette_moins';
   onFermer: () => void;
   onAjoutReussi: () => void;
 }) {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
-  const [type, setType] = useState<TypeDette>('dette_plus');
   const [nom, setNom] = useState('');
   const [montant, setMontant] = useState('');
   const [motif, setMotif] = useState('');
@@ -34,7 +34,6 @@ export function PopupAjouterDette({
   useStabiliteClavier([nomRef, montantRef, motifRef], visible);
 
   function fermer() {
-    setType('dette_plus');
     setNom('');
     setMontant('');
     setMotif('');
@@ -57,13 +56,13 @@ export function PopupAjouterDette({
     try {
       await ajouterDette({
         clientNom: nomNettoye,
-        type,
+        type: typeDette,
         montant: montantNum,
         motif: motifNettoye ? motifNettoye : null,
         origine: 'manuel',
         correctionDe: null,
+        clientJourId: null,
       });
-      setType('dette_plus');
       setNom('');
       setMontant('');
       setMotif('');
@@ -80,32 +79,9 @@ export function PopupAjouterDette({
       <Pressable style={styles.overlay} onPress={Keyboard.dismiss}>
         <Pressable onPress={() => {}}>
           <View style={styles.popup}>
-            <Text style={styles.title}>Ajouter une dette</Text>
-
-            <View style={styles.typeRow}>
-              <Pressable
-                style={[styles.typeButton, type === 'dette_plus' && styles.typeButtonPlusActif]}
-                onPress={() => setType('dette_plus')}>
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    type === 'dette_plus' && styles.typeButtonTextPlusActif,
-                  ]}>
-                  Dette+
-                </Text>
-              </Pressable>
-              <Pressable
-                style={[styles.typeButton, type === 'dette_moins' && styles.typeButtonMoinsActif]}
-                onPress={() => setType('dette_moins')}>
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    type === 'dette_moins' && styles.typeButtonTextMoinsActif,
-                  ]}>
-                  Dette-
-                </Text>
-              </Pressable>
-            </View>
+            <Text style={styles.title}>
+              {typeDette === 'dette_plus' ? 'Ajouter une Dette+' : 'Ajouter une Dette-'}
+            </Text>
 
             <Text style={styles.label}>Nom du client</Text>
             <TextInput style={styles.input} value={nom} onChangeText={setNom} ref={nomRef} />
@@ -128,7 +104,7 @@ export function PopupAjouterDette({
               <Text style={styles.buttonText}>Enregistrer</Text>
             </Pressable>
             <Pressable style={styles.buttonAnnuler} onPress={fermer}>
-              <Text style={styles.buttonText}>Annuler</Text>
+              <Text style={styles.buttonAnnulerText}>Annuler</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -157,40 +133,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       color: theme.colors.onSurface,
       marginBottom: theme.spacing.sm,
       textAlign: 'center',
-    },
-    typeRow: {
-      flexDirection: 'row',
-      gap: theme.spacing.sm,
-      marginTop: theme.spacing.sm,
-    },
-    typeButton: {
-      flex: 1,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      borderWidth: 1,
-      borderColor: theme.colors.outline,
-      backgroundColor: 'transparent',
-      alignItems: 'center',
-    },
-    typeButtonPlusActif: {
-      backgroundColor: theme.colors.error,
-      borderColor: theme.colors.error,
-    },
-    typeButtonMoinsActif: {
-      backgroundColor: theme.colors.success,
-      borderColor: theme.colors.success,
-    },
-    typeButtonText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
-      color: theme.colors.onSurfaceVariant,
-    },
-    typeButtonTextPlusActif: {
-      color: theme.colors.onPrimary,
-    },
-    typeButtonTextMoinsActif: {
-      color: theme.colors.onPrimary,
     },
     label: {
       fontSize: theme.fontSizes.bodyMd,
@@ -227,8 +169,13 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     buttonText: {
       fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
+      fontFamily: theme.fontFamilies.bodyMedium,
       color: theme.colors.onPrimary,
+    },
+    buttonAnnulerText: {
+      fontSize: theme.fontSizes.bodyMd,
+      fontFamily: theme.fontFamilies.body,
+      color: theme.colors.onSurfaceVariant,
     },
   });
 }

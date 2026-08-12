@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DetailDette } from '@/components/DetailDette';
 import { ListeClientsJour } from '@/components/ListeClientsJour';
 import { PopupEncaissement } from '@/components/PopupEncaissement';
 import { PopupModifierClient } from '@/components/PopupModifierClient';
 import { PopupNouveauClient } from '@/components/PopupNouveauClient';
 import { useProfilActif } from '@/lib/context/ProfilActifContext';
 import type { ClientJour } from '@/lib/db/clients';
+import { trouverDetteClient, type Dette } from '@/lib/db/dettes';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
 export default function AccueilScreen() {
@@ -17,12 +20,14 @@ export default function AccueilScreen() {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [refreshKey, setRefreshKey] = useState(0);
   const [popupNouveauVisible, setPopupNouveauVisible] = useState(false);
   const [clientAEncaisser, setClientAEncaisser] = useState<ClientJour | null>(null);
   const [clientAModifier, setClientAModifier] = useState<ClientJour | null>(null);
   const [dateSelectionnee, setDateSelectionnee] = useState(() => new Date());
   const [afficherPicker, setAfficherPicker] = useState(false);
+  const [detteDetail, setDetteDetail] = useState<Dette | null>(null);
 
   // Date au format "AAAA-MM-JJ" construite depuis la date choisie.
   const annee = dateSelectionnee.getFullYear();
@@ -30,9 +35,25 @@ export default function AccueilScreen() {
   const jour = String(dateSelectionnee.getDate()).padStart(2, '0');
   const dateAffichee = `${annee}-${mois}-${jour}`;
 
+  // Remboursement d'une dette auto depuis l'historique d'une date passée :
+  // on retrouve la Dette+ liée au client du jour (clientJourId) puis on
+  // ouvre le même modal de détail que l'écran Dettes.
+  async function ouvrirDetailDette(client: ClientJour) {
+    const dette = await trouverDetteClient(client.id);
+    if (dette) {
+      setDetteDetail(dette);
+    } else {
+      Alert.alert(
+        'Dette introuvable',
+        "Aucune dette automatique n'est liée à ce client.",
+        [{ text: 'OK' }],
+      );
+    }
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: theme.spacing.md + insets.top }]}>
         <View style={styles.topBarLeft}>
           <Pressable onPress={() => (navigation as any).openDrawer()}>
             <MaterialCommunityIcons name="menu" size={28} color={theme.colors.primary} />
@@ -54,26 +75,31 @@ export default function AccueilScreen() {
         </Pressable>
       </View>
 
-      <Pressable style={styles.dateBar} onPress={() => setAfficherPicker(true)}>
-        <MaterialCommunityIcons name="calendar" size={22} color={theme.colors.primary} />
-        <Text style={styles.dateBarText}>
-          {dateSelectionnee.toLocaleDateString('fr-FR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </Text>
+      <View style={styles.dateBar}>
+        <Pressable
+          style={styles.dateBarZone}
+          onPress={() => setAfficherPicker(true)}>
+          <MaterialCommunityIcons name="calendar" size={22} color={theme.colors.primary} />
+          <Text style={styles.dateBarText}>
+            {dateSelectionnee.toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </Text>
+        </Pressable>
         <Pressable
           style={styles.aujourdhuiButton}
           onPress={() => setDateSelectionnee(new Date())}>
-          <Text style={styles.aujourdhuiButtonText}>Aujourd'hui</Text>
+          <Text style={styles.aujourdhuiButtonText}>Aujourd&apos;hui</Text>
         </Pressable>
-      </Pressable>
+      </View>
 
       {afficherPicker && (
         <DateTimePicker
           value={dateSelectionnee}
           mode="date"
+          maximumDate={new Date()}
           onChange={(event, date) => {
             setAfficherPicker(false);
             if (date) {
@@ -90,6 +116,7 @@ export default function AccueilScreen() {
           onClientPresse={(client) => setClientAEncaisser(client)}
           onModifierPresse={(client) => setClientAModifier(client)}
           onSupprimerReussie={() => setRefreshKey((k) => k + 1)}
+          onDettePresse={ouvrirDetailDette}
         />
       </View>
 
@@ -115,6 +142,13 @@ export default function AccueilScreen() {
         client={clientAModifier}
         onFermer={() => setClientAModifier(null)}
         onModifieReussi={() => setRefreshKey((k) => k + 1)}
+      />
+
+      <DetailDette
+        visible={detteDetail !== null}
+        dette={detteDetail}
+        onFermer={() => setDetteDetail(null)}
+        onRembourse={() => setRefreshKey((k) => k + 1)}
       />
     </View>
   );
@@ -183,6 +217,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       gap: theme.spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.outline,
+    },
+    dateBarZone: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
     },
     dateBarText: {
       flex: 1,

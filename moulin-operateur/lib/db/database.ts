@@ -52,6 +52,9 @@ export async function initDatabase(): Promise<void> {
       motif TEXT,
       origine TEXT NOT NULL,
       correctionDe TEXT,
+      clientJourId TEXT,
+      remboursee INTEGER NOT NULL DEFAULT 0,
+      rembourseeAt TEXT,
       seq INTEGER NOT NULL,
       deviceId TEXT NOT NULL,
       createdAt TEXT NOT NULL
@@ -71,4 +74,31 @@ export async function initDatabase(): Promise<void> {
       nextSeq INTEGER NOT NULL
     );
   `);
+
+  await migrer(database);
+}
+
+/**
+ * Migration des bases existantes : les colonnes de remboursement des dettes
+ * n'existaient pas à la création initiale de la table. On les ajoute via
+ * ALTER TABLE si elles manquent (CREATE TABLE IF NOT EXISTS ne modifie pas
+ * une table déjà existante).
+ */
+async function migrer(database: SQLiteDatabase): Promise<void> {
+  const colonnesDettes = await database.getAllAsync<{ name: string }>(
+    'PRAGMA table_info(dettes)',
+  );
+  const noms = new Set(colonnesDettes.map((c) => c.name));
+
+  if (!noms.has('clientJourId')) {
+    await database.execAsync('ALTER TABLE dettes ADD COLUMN clientJourId TEXT');
+  }
+  if (!noms.has('remboursee')) {
+    await database.execAsync(
+      'ALTER TABLE dettes ADD COLUMN remboursee INTEGER NOT NULL DEFAULT 0',
+    );
+  }
+  if (!noms.has('rembourseeAt')) {
+    await database.execAsync('ALTER TABLE dettes ADD COLUMN rembourseeAt TEXT');
+  }
 }

@@ -42,9 +42,9 @@ export function PopupNouveauClient({
 
   async function handleAjouter() {
     const aujourdhui = dateDuJourLocal();
-    if (dateActuelleVisualisee !== aujourdhui && dateActuelleVisualisee < aujourdhui) {
+    if (dateActuelleVisualisee !== aujourdhui) {
       setErreur(
-        "Impossible d'ajouter un nouveau client pour une date passée. Revenez à aujourd'hui.",
+        "Impossible d'ajouter un nouveau client : la journée visualisée doit être aujourd'hui.",
       );
       return;
     }
@@ -60,7 +60,7 @@ export function PopupNouveauClient({
     }
     try {
       await ajouterClient({
-        date: dateDuJourLocal(),
+        date: dateActuelleVisualisee,
         nom: nomNettoye,
         kg: kgNum,
         profilNom,

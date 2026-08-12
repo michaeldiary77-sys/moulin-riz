@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProfilActif } from '@/lib/context/ProfilActifContext';
 import { listerClientsDuJour } from '@/lib/db/clients';
@@ -13,6 +14,7 @@ export default function ResumeScreen() {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [totalKg, setTotalKg] = useState(0);
   const [nombreClients, setNombreClients] = useState(0);
   const [nombreNonPaye, setNombreNonPaye] = useState(0);
@@ -47,7 +49,7 @@ export default function ResumeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: theme.spacing.md + insets.top }]}>
         <View style={styles.topBarLeft}>
           <Pressable onPress={() => (navigation as any).openDrawer()}>
             <MaterialCommunityIcons name="menu" size={28} color={theme.colors.primary} />
@@ -69,7 +71,12 @@ export default function ResumeScreen() {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: theme.spacing.xl + theme.spacing.lg + insets.bottom },
+        ]}>
         <Text style={styles.sousTitre}>Suivi des récoltes — {dateFormatee}</Text>
 
         <View style={styles.statCard}>

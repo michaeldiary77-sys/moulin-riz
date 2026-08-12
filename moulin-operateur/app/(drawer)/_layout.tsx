@@ -5,7 +5,9 @@ export default function DrawerLayout() {
     <Drawer screenOptions={{ headerShown: false }}>
       <Drawer.Screen name="resume" options={{ title: 'Résumé' }} />
       <Drawer.Screen name="accueil" options={{ title: 'Accueil' }} />
-      <Drawer.Screen name="dettes" options={{ title: 'Dettes' }} />
+      <Drawer.Screen name="dettes-plus" options={{ title: 'Dette+' }} />
+      <Drawer.Screen name="dettes-moins" options={{ title: 'Dette-' }} />
+      <Drawer.Screen name="synchronisation" options={{ title: 'Synchronisation' }} />
     </Drawer>
   );
 }

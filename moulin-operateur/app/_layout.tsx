@@ -10,6 +10,7 @@ import { JetBrainsMono_500Medium, useFonts as useJetBrainsMono } from '@expo-goo
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 
 import { SelecteurProfil } from '@/components/SelecteurProfil';
@@ -68,9 +69,11 @@ export default function RootLayout() {
   }
 
   return (
-    <ProfilActifProvider>
-      <ContenuApplication />
-    </ProfilActifProvider>
+    <SafeAreaProvider>
+      <ProfilActifProvider>
+        <ContenuApplication />
+      </ProfilActifProvider>
+    </SafeAreaProvider>
   );
 }
 

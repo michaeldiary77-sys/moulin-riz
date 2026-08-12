@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MenuActionClient } from '@/components/MenuActionClient';
 import { listerClientsDuJour, supprimerClient, type ClientJour } from '@/lib/db/clients';
@@ -17,8 +18,10 @@ type Filtre = 'tout' | 'en_attente' | 'paye_kpk' | 'paye_ar';
  * Le tap sur la carte ne fait rien ; seul le bouton rond "cash" (statut
  * "en_attente") ouvre le paiement. Le long-press sur une carte
  * "en_attente" ouvre le MenuActionClient (Payer / Modifier / Supprimer).
- * Les cartes "paye"/"non_paye" ne sont ni pressables au tap ni au
- * long-press. La barre de filtres est fixe en bas du composant.
+ * En lecture seule (date passée), les cartes "paye" restent inertes mais
+ * les cartes "non_paye" sont tappables pour rembourser leur dette
+ * automatique (via onDettePresse). La barre de filtres est fixe en bas
+ * du composant.
  */
 export function ListeClientsJour({
   dateAffichee,
@@ -26,15 +29,18 @@ export function ListeClientsJour({
   onClientPresse,
   onModifierPresse,
   onSupprimerReussie,
+  onDettePresse,
 }: {
   dateAffichee: string;
   refreshKey: number;
   onClientPresse: (client: ClientJour) => void;
   onModifierPresse: (client: ClientJour) => void;
   onSupprimerReussie: () => void;
+  onDettePresse: (client: ClientJour) => void;
 }) {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
+  const insets = useSafeAreaInsets();
   const [clients, setClients] = useState<ClientJour[]>([]);
   const [filtre, setFiltre] = useState<Filtre>('en_attente');
   const [recherche, setRecherche] = useState('');
@@ -149,13 +155,28 @@ export function ListeClientsJour({
 
       <ScrollView style={styles.listeScroll} contentContainerStyle={styles.listeContenu}>
         {clientsFiltres.length === 0 ? (
-          <Text style={styles.vide}>Aucun client pour l'instant</Text>
+          <Text style={styles.vide}>Aucun client pour l&apos;instant</Text>
         ) : (
           clientsFiltres.map((c) => (
             <Pressable
               key={c.id}
-              disabled={lectureSeule || c.statut !== 'en_attente'}
-              onLongPress={lectureSeule ? undefined : () => ouvrirMenuClient(c)}
+              disabled={
+                lectureSeule
+                  ? c.statut !== 'non_paye'
+                  : c.statut !== 'en_attente'
+              }
+              onPress={
+                lectureSeule && c.statut === 'non_paye'
+                  ? () => onDettePresse(c)
+                  : undefined
+              }
+              onLongPress={
+                lectureSeule
+                  ? undefined
+                  : c.statut === 'en_attente'
+                    ? () => ouvrirMenuClient(c)
+                    : undefined
+              }
               style={[
                 styles.carte,
                 { borderLeftColor: couleurBordure(c) },
@@ -179,12 +200,18 @@ export function ListeClientsJour({
                       />
                     </Pressable>
                   ))}
-                {c.statut === 'paye' && <Text style={styles.payeText}>Payé</Text>}
+                {c.statut === 'paye' && (
+                  <Text style={styles.payeText}>
+                    {c.montant !== null
+                      ? `Payé · ${c.montant} ${c.modePaiement === 'Kpk' ? 'Kpk' : 'Ar'}`
+                      : 'Payé'}
+                  </Text>
+                )}
                 {c.statut === 'non_paye' && (
                   <MaterialCommunityIcons
-                    name="hand-coin"
+                    name={lectureSeule ? 'cash' : 'hand-coin'}
                     size={22}
-                    color={theme.colors.error}
+                    color={lectureSeule ? theme.colors.primary : theme.colors.error}
                   />
                 )}
               </View>
@@ -193,7 +220,11 @@ export function ListeClientsJour({
         )}
       </ScrollView>
 
-      <View style={styles.filtresBarre}>
+      <View
+        style={[
+          styles.filtresBarre,
+          { paddingBottom: theme.spacing.sm + insets.bottom },
+        ]}>
         {filtres.map((f) => (
           <Pressable
             key={f.valeur}

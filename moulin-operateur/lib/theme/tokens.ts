@@ -42,11 +42,11 @@ export const radius = {
 };
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  xs: 3,
+  sm: 6,
+  md: 12,
+  lg: 20,
+  xl: 28,
 };
 
 export const fontFamilies = {
@@ -58,10 +58,10 @@ export const fontFamilies = {
 };
 
 export const fontSizes = {
-  headlineLg: 30,
-  headlineMd: 24,
-  headlineSm: 20,
-  bodyLg: 18,
-  bodyMd: 16,
-  labelMd: 14,
+  headlineLg: 24,
+  headlineMd: 20,
+  headlineSm: 17,
+  bodyLg: 15,
+  bodyMd: 13,
+  labelMd: 12,
 };
