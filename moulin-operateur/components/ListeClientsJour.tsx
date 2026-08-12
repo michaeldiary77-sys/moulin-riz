@@ -29,7 +29,6 @@ export function ListeClientsJour({
 }) {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
-  const insets = useSafeAreaInsets();
   const [clients, setClients] = useState<ClientJour[]>([]);
   const [filtre, setFiltre] = useState<Filtre>('en_attente');
   const [recherche, setRecherche] = useState('');
@@ -144,6 +143,7 @@ export function ListeClientsJour({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.filtresScroll}
         contentContainerStyle={styles.filtresBarre}>
         {filtres.map((f) => (
           <Pressable
@@ -164,7 +164,7 @@ export function ListeClientsJour({
 
       <ScrollView
         style={styles.listeScroll}
-        contentContainerStyle={[styles.listeContenu, { paddingBottom: 88 + insets.bottom }]}>
+        contentContainerStyle={styles.listeContenu}>
         {clientsFiltres.length === 0 ? (
           <Text style={styles.vide}>Aucun client pour l&apos;instant</Text>
         ) : (
@@ -279,9 +279,14 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontFamily: theme.fontFamilies.body,
       fontSize: theme.fontSizes.bodyMd,
     },
+    filtresScroll: {
+      flexGrow: 0,
+      flexShrink: 0,
+    },
     filtresBarre: {
       paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.sm,
+      paddingTop: theme.spacing.sm,
+      paddingBottom: theme.spacing.xs,
       gap: theme.spacing.sm,
       alignItems: 'center',
     },
@@ -309,7 +314,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     indice: {
       paddingHorizontal: theme.spacing.md,
-      paddingBottom: theme.spacing.xs,
+      paddingBottom: theme.spacing.sm,
       fontFamily: theme.fontFamilies.body,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
@@ -319,6 +324,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     listeContenu: {
       paddingHorizontal: theme.spacing.md,
+      paddingBottom: 80,
     },
     carte: {
       backgroundColor: theme.colors.surface,

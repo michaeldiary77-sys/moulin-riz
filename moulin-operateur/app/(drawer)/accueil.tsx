@@ -193,7 +193,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     fab: {
       position: 'absolute',
-      bottom: theme.spacing.lg,
+      bottom: 72,
       right: theme.spacing.lg,
       width: 56,
       height: 56,
