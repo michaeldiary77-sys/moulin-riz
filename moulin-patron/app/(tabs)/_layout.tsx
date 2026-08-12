@@ -9,7 +9,7 @@ import { useAppTheme } from '@/lib/theme/useAppTheme';
 export default function TabLayout() {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
-  const barreSysteme = Math.max(insets.bottom, 24);
+  const barreSysteme = Math.max(insets.bottom, 48);
 
   return (
     <Tabs
