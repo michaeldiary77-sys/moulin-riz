@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { FilledButton, androidRipple } from '@/components/ui/material';
 import { useProfilActif } from '@/lib/context/ProfilActifContext';
 import { ajouterProfil, listerProfils, type Profil } from '@/lib/db/profils';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
@@ -16,6 +18,7 @@ export function SelecteurProfil() {
   const [nouveauNom, setNouveauNom] = useState('');
   const theme = useAppTheme();
   const styles = makeStyles(theme);
+  const insets = useSafeAreaInsets();
   const nomInputRef = useRef<TextInput>(null);
   useStabiliteClavier([nomInputRef]);
 
@@ -46,7 +49,12 @@ export function SelecteurProfil() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: theme.spacing.lg + insets.top, paddingBottom: theme.spacing.xl + insets.bottom },
+      ]}>
       <View style={styles.header}>
         <View style={styles.logoBox}>
           <MaterialCommunityIcons name="tractor" size={40} color={theme.colors.onPrimary} />
@@ -68,10 +76,11 @@ export function SelecteurProfil() {
           placeholderTextColor={theme.colors.onSurfaceVariant}
           ref={nomInputRef}
         />
-        <Pressable style={styles.creerButton} onPress={handleCreerProfil}>
-          <MaterialCommunityIcons name="plus-circle" size={24} color={theme.colors.onPrimary} />
-          <Text style={styles.creerButtonText}>Ajouter</Text>
-        </Pressable>
+        <FilledButton
+          label="Ajouter"
+          icon={<MaterialCommunityIcons name="plus-circle" size={22} color={theme.colors.onPrimary} />}
+          onPress={handleCreerProfil}
+        />
       </View>
 
       <Text style={styles.profilsLabel}>PROFILS EXISTANTS</Text>
@@ -79,6 +88,7 @@ export function SelecteurProfil() {
         {profils.map((profil) => (
           <Pressable
             key={profil.id}
+            android_ripple={androidRipple(theme.colors.ripple)}
             style={styles.profilCard}
             onPress={() => handleChoisirProfil(profil)}>
             <View style={styles.avatar}>
@@ -120,7 +130,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     title: {
       fontFamily: theme.fontFamilies.headline,
       fontSize: theme.fontSizes.headlineLg,
-      color: theme.colors.primary,
+      color: theme.colors.onSurface,
     },
     subtitle: {
       fontFamily: theme.fontFamilies.body,
@@ -129,10 +139,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       textAlign: 'center',
     },
     profilsLabel: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
       marginTop: theme.spacing.sm,
     },
     profilsList: {
@@ -184,25 +193,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     input: {
       backgroundColor: theme.colors.surface,
-      borderWidth: 2,
+      borderWidth: 1,
       borderColor: theme.colors.outline,
-      borderRadius: theme.radius.lg,
-      padding: theme.spacing.md,
-      height: 56,
+      borderRadius: theme.radius.sm,
+      paddingHorizontal: theme.spacing.md,
+      minHeight: 48,
       color: theme.colors.onSurface,
-    },
-    creerButton: {
-      backgroundColor: theme.colors.primary,
-      borderRadius: theme.radius.lg,
-      height: 56,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.sm,
-    },
-    creerButtonText: {
-      color: theme.colors.onPrimary,
-      fontFamily: theme.fontFamilies.headlineSemiBold,
       fontSize: theme.fontSizes.bodyMd,
     },
   });

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { File } from 'expo-file-system';
 
+import { AppBar, FilledButton } from '@/components/ui/material';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 import { exporterDettes, exporterTarifs, partagerFichier } from '@/lib/sync/export';
 import { importerDettes, importerJournee, type ResultatImport } from '@/lib/sync/import';
@@ -76,50 +77,47 @@ export default function SynchronisationScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.primary} />
-        <Text style={styles.headerTitle}>Synchronisation</Text>
-        <View style={styles.profilCircle}>
-          <MaterialCommunityIcons name="sync" size={22} color={theme.colors.primary} />
-        </View>
-      </View>
+    <View style={styles.container}>
+      <AppBar title="Synchronisation" />
+    <ScrollView contentContainerStyle={styles.content}>
 
       <View style={styles.texteBlock}>
-        <Text style={styles.texteLabel}>ÉCHANGES AVEC LES OPÉRATEURS</Text>
+        <Text style={styles.texteLabel}>Échanges avec les opérateurs</Text>
         <Text style={styles.texteTitre}>Importez les journées, envoyez les tarifs</Text>
       </View>
 
-      <Text style={styles.sectionTitre}>EXPORTER VERS LES OPÉRATEURS</Text>
+      <Text style={styles.sectionTitre}>Exporter vers les opérateurs</Text>
       <View style={styles.carte}>
-        <Pressable style={styles.bouton} onPress={exporterTarifsAction} disabled={occupé}>
-          <MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.boutonTexte}>Exporter les tarifs (CSV)</Text>
-        </Pressable>
+        <FilledButton
+          disabled={occupé}
+          label="Exporter les tarifs (CSV)"
+          icon={<MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />}
+          onPress={exporterTarifsAction}
+        />
 
-        <Pressable style={styles.bouton} onPress={exporterDettesAction} disabled={occupé}>
-          <MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.boutonTexte}>Exporter les dettes (journal complet)</Text>
-        </Pressable>
+        <FilledButton
+          disabled={occupé}
+          label="Exporter les dettes (journal complet)"
+          icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
+          onPress={exporterDettesAction}
+        />
       </View>
 
-      <Text style={styles.sectionTitre}>IMPORTER DEPUIS LES OPÉRATEURS</Text>
+      <Text style={styles.sectionTitre}>Importer depuis les opérateurs</Text>
       <View style={styles.carte}>
-        <Pressable
-          style={styles.bouton}
+        <FilledButton
+          disabled={occupé}
+          label="Importer une journée (CSV)"
+          icon={<MaterialCommunityIcons name="calendar-check" size={20} color={theme.colors.onPrimary} />}
           onPress={() => importerFichier(importerJournee, 'la journée')}
-          disabled={occupé}>
-          <MaterialCommunityIcons name="calendar-check" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.boutonTexte}>Importer une journée (CSV)</Text>
-        </Pressable>
+        />
 
-        <Pressable
-          style={styles.bouton}
+        <FilledButton
+          disabled={occupé}
+          label="Importer les dettes (CSV)"
+          icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
           onPress={() => importerFichier(importerDettes, 'les dettes')}
-          disabled={occupé}>
-          <MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />
-          <Text style={styles.boutonTexte}>Importer les dettes (CSV)</Text>
-        </Pressable>
+        />
       </View>
 
       <View style={styles.infoBox}>
@@ -136,6 +134,7 @@ export default function SynchronisationScreen() {
         </Text>
       </View>
     </ScrollView>
+    </View>
   );
 }
 
@@ -149,33 +148,13 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       padding: theme.spacing.md,
       gap: theme.spacing.md,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: theme.spacing.md,
-    },
-    headerTitle: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
-      color: theme.colors.primary,
-    },
-    profilCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     texteBlock: {
       gap: theme.spacing.xs,
     },
     texteLabel: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
     },
     texteTitre: {
       fontFamily: theme.fontFamilies.headline,
@@ -183,10 +162,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       color: theme.colors.onSurface,
     },
     sectionTitre: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
       marginTop: theme.spacing.xs,
     },
     carte: {
@@ -194,20 +172,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       borderRadius: theme.radius.lg,
       padding: theme.spacing.md,
       gap: theme.spacing.sm,
-    },
-    bouton: {
-      backgroundColor: theme.colors.primary,
-      borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.sm,
-    },
-    boutonTexte: {
-      color: theme.colors.onPrimary,
-      fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: theme.fontSizes.bodyMd,
     },
     infoBox: {
       backgroundColor: theme.colors.surfaceContainer,

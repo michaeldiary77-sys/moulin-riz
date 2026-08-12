@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { FilledButton, TextButton } from '@/components/ui/material';
 import { ajouterDette } from '@/lib/db/dettes';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
@@ -75,7 +76,7 @@ export function PopupAjouterDette({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={fermer}>
       <Pressable style={styles.overlay} onPress={Keyboard.dismiss}>
         <Pressable onPress={() => {}}>
           <View style={styles.popup}>
@@ -100,12 +101,10 @@ export function PopupAjouterDette({
 
             {erreur && <Text style={styles.erreur}>{erreur}</Text>}
 
-            <Pressable style={styles.button} onPress={handleEnregistrer}>
-              <Text style={styles.buttonText}>Enregistrer</Text>
-            </Pressable>
-            <Pressable style={styles.buttonAnnuler} onPress={fermer}>
-              <Text style={styles.buttonAnnulerText}>Annuler</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <TextButton label="Annuler" onPress={fermer} />
+              <FilledButton label="Enregistrer" onPress={handleEnregistrer} />
+            </View>
           </View>
         </Pressable>
       </Pressable>

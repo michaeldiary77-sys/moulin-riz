@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FilledButton, TextButton } from '@/components/ui/material';
 import { encaisserClient } from '@/lib/db/clients';
 import { lireTarifs } from '@/lib/db/tarifs';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
@@ -86,7 +87,7 @@ export function PopupEncaissement({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onFerme}>
       <View style={styles.overlay}>
         <View style={styles.popup}>
           <Text style={styles.title}>Paiement : {clientCourant.nom}</Text>
@@ -98,22 +99,20 @@ export function PopupEncaissement({
           <Text style={styles.montant}>{montantKpk} Kpk</Text>
 
           <Text style={styles.label}>Choisir le mode de paiement</Text>
-          <Pressable
-            style={[styles.button, { borderColor: theme.colors.ar }]}
-            onPress={() => confirmerEtEncaisser('Ar', `${montantAr} Ar`)}>
-            <Text style={styles.buttonText}>Payer en Ar</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.button, { borderColor: theme.colors.kpk }]}
-            onPress={() => confirmerEtEncaisser('Kpk', `${montantKpk} Kpk`)}>
-            <Text style={styles.buttonText}>Payer en Kpk</Text>
-          </Pressable>
+          <FilledButton
+            label="Payer en Ar"
+            onPress={() => confirmerEtEncaisser('Ar', `${montantAr} Ar`)}
+          />
+          <FilledButton
+            label="Payer en Kpk"
+            onPress={() => confirmerEtEncaisser('Kpk', `${montantKpk} Kpk`)}
+          />
 
           {erreur && <Text style={styles.erreur}>{erreur}</Text>}
 
-          <Pressable style={styles.buttonAnnuler} onPress={onFerme}>
-            <Text style={styles.buttonText}>Annuler</Text>
-          </Pressable>
+          <View style={styles.actions}>
+            <TextButton label="Annuler" onPress={onFerme} />
+          </View>
         </View>
       </View>
     </Modal>
@@ -124,58 +123,41 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.4)',
+      backgroundColor: theme.colors.scrim,
       justifyContent: 'center',
       padding: theme.spacing.lg,
     },
     popup: {
-      backgroundColor: theme.colors.surfaceContainer,
+      backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.lg,
       padding: theme.spacing.lg,
       gap: theme.spacing.sm,
+      ...theme.elevation.fab,
     },
     title: {
       fontSize: theme.fontSizes.headlineSm,
       fontFamily: theme.fontFamilies.headline,
       color: theme.colors.onSurface,
       marginBottom: theme.spacing.sm,
-      textAlign: 'center',
     },
     label: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
-      color: theme.colors.onSurface,
+      fontSize: theme.fontSizes.labelMd,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.sm,
     },
     montant: {
       fontSize: theme.fontSizes.headlineMd,
       fontFamily: theme.fontFamilies.headlineSemiBold,
-      color: theme.colors.primary,
-      textAlign: 'center',
-    },
-    button: {
-      backgroundColor: theme.colors.primary,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
-      marginTop: theme.spacing.sm,
-      borderWidth: 2,
-    },
-    buttonText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.bodyMedium,
-      color: theme.colors.onPrimary,
+      color: theme.colors.onSurface,
     },
     erreur: {
       color: theme.colors.error,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: theme.fontSizes.labelMd,
     },
-    buttonAnnuler: {
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
-      marginTop: theme.spacing.sm,
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
     },
   });
 }

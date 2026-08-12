@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 import { DetailDette } from '@/components/DetailDette';
 import { PopupAjouterDette } from '@/components/PopupAjouterDette';
+import { AppBar, androidRipple } from '@/components/ui/material';
 import { listerDettes, listerIdsCorrections, type Dette } from '@/lib/db/dettes';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
@@ -24,8 +25,6 @@ type TypeDette = 'dette_plus' | 'dette_moins';
 export function EcranDettes({ type }: { type: TypeDette }) {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [dettes, setDettes] = useState<Dette[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [popupVisible, setPopupVisible] = useState(false);
@@ -57,7 +56,6 @@ export function EcranDettes({ type }: { type: TypeDette }) {
   const titre = estPlus ? 'Dette+' : 'Dette-';
   const libelleTotal = estPlus ? 'À RECEVOIR' : 'À PAYER';
   const couleurTotal = estPlus ? theme.colors.success : theme.colors.error;
-  const iconeCercle = estPlus ? 'cash-plus' : 'cash-minus';
   const messageVide = estPlus ? 'Aucune Dette+ enregistrée' : 'Aucune Dette- enregistrée';
 
   const dettesDuType = dettes.filter((d) => d.type === type);
@@ -99,17 +97,7 @@ export function EcranDettes({ type }: { type: TypeDette }) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: theme.spacing.md + insets.top }]}>
-        <View style={styles.headerGauche}>
-          <Pressable onPress={() => (navigation as any).openDrawer()}>
-            <MaterialCommunityIcons name="menu" size={28} color={theme.colors.primary} />
-          </Pressable>
-          <View style={styles.headerCercle}>
-            <MaterialCommunityIcons name={iconeCercle} size={28} color={theme.colors.onPrimary} />
-          </View>
-          <Text style={styles.headerTitre}>{titre}</Text>
-        </View>
-      </View>
+      <AppBar title={titre} />
 
       <View style={styles.blocStats}>
         <View style={styles.carte}>
@@ -179,8 +167,13 @@ export function EcranDettes({ type }: { type: TypeDette }) {
         )}
       </ScrollView>
 
-      <Pressable style={styles.fab} onPress={() => setPopupVisible(true)}>
-        <MaterialCommunityIcons name="plus" size={32} color={theme.colors.onPrimary} />
+      <Pressable
+        style={styles.fab}
+        accessibilityRole="button"
+        accessibilityLabel="Ajouter une dette"
+        android_ripple={androidRipple(theme.colors.ripple, true)}
+        onPress={() => setPopupVisible(true)}>
+        <MaterialCommunityIcons name="plus" size={28} color={theme.colors.onPrimary} />
       </Pressable>
 
       <PopupAjouterDette
@@ -207,30 +200,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: theme.spacing.md,
-    },
-    headerGauche: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-    },
-    headerCercle: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitre: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
-      color: theme.colors.primary,
-    },
     blocStats: {
       paddingHorizontal: theme.spacing.md,
       gap: theme.spacing.md,
@@ -242,7 +211,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       gap: theme.spacing.xs,
     },
     carteLibelle: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
@@ -321,7 +290,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       paddingHorizontal: theme.spacing.sm,
     },
     ligneBadgeText: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },

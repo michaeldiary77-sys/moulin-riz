@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MenuActionClient } from '@/components/MenuActionClient';
+import { androidRipple } from '@/components/ui/material';
 import { listerClientsDuJour, supprimerClient, type ClientJour } from '@/lib/db/clients';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
@@ -11,18 +12,6 @@ import { dateDuJourLocal } from '@/lib/utils/date';
 
 type Filtre = 'tout' | 'en_attente' | 'paye_kpk' | 'paye_ar';
 
-/**
- * Affiche la liste des clients déjà enregistrés pour la journée en cours.
- * Le parent incrémente refreshKey à chaque nouvel enregistrement pour
- * déclencher un rechargement automatique.
- * Le tap sur la carte ne fait rien ; seul le bouton rond "cash" (statut
- * "en_attente") ouvre le paiement. Le long-press sur une carte
- * "en_attente" ouvre le MenuActionClient (Payer / Modifier / Supprimer).
- * En lecture seule (date passée), les cartes "paye" restent inertes mais
- * les cartes "non_paye" sont tappables pour rembourser leur dette
- * automatique (via onDettePresse). La barre de filtres est fixe en bas
- * du composant.
- */
 export function ListeClientsJour({
   dateAffichee,
   refreshKey,
@@ -57,7 +46,6 @@ export function ListeClientsJour({
       });
   }, [dateAffichee, refreshKey]);
 
-  // Rechargement local (après suppression) sans attendre le parent.
   function rechargerListe() {
     listerClientsDuJour(dateAffichee)
       .then(setClients)
@@ -81,7 +69,6 @@ export function ListeClientsJour({
     setClientMenuOuvert(client);
   }
 
-  // Confirmation de suppression : toujours une Alert.alert natif.
   function confirmerSuppression(client: ClientJour) {
     Alert.alert('Confirmer la suppression', `Supprimer ${client.nom} ?`, [
       { text: 'Annuler', style: 'cancel' },
@@ -101,7 +88,6 @@ export function ListeClientsJour({
     ]);
   }
 
-  // Couleur de la bordure gauche de la carte selon le statut.
   function couleurBordure(client: ClientJour): string {
     if (client.statut === 'en_attente') {
       return theme.colors.warning;
@@ -112,7 +98,6 @@ export function ListeClientsJour({
     return theme.colors.error;
   }
 
-  // Filtres d'affichage : ordre et libellés exacts, partagés en bas d'écran.
   const filtres: { valeur: Filtre; libelle: string }[] = [
     { valeur: 'tout', libelle: 'Tout' },
     { valeur: 'en_attente', libelle: 'En attente' },
@@ -144,22 +129,49 @@ export function ListeClientsJour({
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.recherche}
-        value={recherche}
-        onChangeText={setRecherche}
-        placeholder="Rechercher (nom, heure, kg)"
-        placeholderTextColor={theme.colors.onSurfaceVariant}
-        ref={rechercheRef}
-      />
+      <View style={styles.rechercheWrap}>
+        <MaterialCommunityIcons name="magnify" size={22} color={theme.colors.onSurfaceVariant} />
+        <TextInput
+          style={styles.recherche}
+          value={recherche}
+          onChangeText={setRecherche}
+          placeholder="Rechercher (nom, heure, kg)"
+          placeholderTextColor={theme.colors.onSurfaceVariant}
+          ref={rechercheRef}
+        />
+      </View>
 
-      <ScrollView style={styles.listeScroll} contentContainerStyle={styles.listeContenu}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filtresBarre}>
+        {filtres.map((f) => (
+          <Pressable
+            key={f.valeur}
+            android_ripple={androidRipple(theme.colors.ripple)}
+            style={[styles.filtre, filtre === f.valeur && styles.filtreActif]}
+            onPress={() => setFiltre(f.valeur)}>
+            <Text style={[styles.filtreText, filtre === f.valeur && styles.filtreTextActif]}>
+              {f.libelle}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {!lectureSeule ? (
+        <Text style={styles.indice}>Touchez pour encaisser · Appui long pour modifier</Text>
+      ) : null}
+
+      <ScrollView
+        style={styles.listeScroll}
+        contentContainerStyle={[styles.listeContenu, { paddingBottom: 88 + insets.bottom }]}>
         {clientsFiltres.length === 0 ? (
           <Text style={styles.vide}>Aucun client pour l&apos;instant</Text>
         ) : (
           clientsFiltres.map((c) => (
             <Pressable
               key={c.id}
+              android_ripple={androidRipple(theme.colors.ripple)}
               disabled={
                 lectureSeule
                   ? c.statut !== 'non_paye'
@@ -168,7 +180,9 @@ export function ListeClientsJour({
               onPress={
                 lectureSeule && c.statut === 'non_paye'
                   ? () => onDettePresse(c)
-                  : undefined
+                  : c.statut === 'en_attente'
+                    ? () => onClientPresse(c)
+                    : undefined
               }
               onLongPress={
                 lectureSeule
@@ -192,13 +206,13 @@ export function ListeClientsJour({
                   (lectureSeule ? (
                     <Text style={styles.enAttenteText}>En attente</Text>
                   ) : (
-                    <Pressable style={styles.boutonPayer} onPress={() => onClientPresse(c)}>
+                    <View style={styles.boutonPayer}>
                       <MaterialCommunityIcons
                         name="cash"
-                        size={20}
+                        size={22}
                         color={theme.colors.onPrimary}
                       />
-                    </Pressable>
+                    </View>
                   ))}
                 {c.statut === 'paye' && (
                   <Text style={styles.payeText}>
@@ -210,7 +224,7 @@ export function ListeClientsJour({
                 {c.statut === 'non_paye' && (
                   <MaterialCommunityIcons
                     name={lectureSeule ? 'cash' : 'hand-coin'}
-                    size={22}
+                    size={24}
                     color={lectureSeule ? theme.colors.primary : theme.colors.error}
                   />
                 )}
@@ -219,23 +233,6 @@ export function ListeClientsJour({
           ))
         )}
       </ScrollView>
-
-      <View
-        style={[
-          styles.filtresBarre,
-          { paddingBottom: theme.spacing.sm + insets.bottom },
-        ]}>
-        {filtres.map((f) => (
-          <Pressable
-            key={f.valeur}
-            style={[styles.filtre, filtre === f.valeur && styles.filtreActif]}
-            onPress={() => setFiltre(f.valeur)}>
-            <Text style={[styles.filtreText, filtre === f.valeur && styles.filtreTextActif]}>
-              {f.libelle}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
 
       <MenuActionClient
         visible={clientMenuOuvert !== null}
@@ -248,7 +245,11 @@ export function ListeClientsJour({
           if (clientMenuOuvert) onModifierPresse(clientMenuOuvert);
         }}
         onSupprimer={() => {
-          if (clientMenuOuvert) confirmerSuppression(clientMenuOuvert);
+          const client = clientMenuOuvert;
+          setClientMenuOuvert(null);
+          if (client) {
+            setTimeout(() => confirmerSuppression(client), 250);
+          }
         }}
       />
     </View>
@@ -259,34 +260,78 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      gap: theme.spacing.xs,
+    },
+    rechercheWrap: {
+      marginHorizontal: theme.spacing.md,
+      marginTop: theme.spacing.sm,
+      minHeight: 48,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.surfaceContainerHigh,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    recherche: {
+      flex: 1,
+      minHeight: 48,
+      color: theme.colors.onSurface,
+      fontFamily: theme.fontFamilies.body,
+      fontSize: theme.fontSizes.bodyMd,
+    },
+    filtresBarre: {
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      gap: theme.spacing.sm,
+      alignItems: 'center',
+    },
+    filtre: {
+      minHeight: 40,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    filtreActif: {
+      backgroundColor: theme.colors.primaryContainer,
+      borderColor: theme.colors.primary,
+    },
+    filtreText: {
+      fontSize: theme.fontSizes.labelMd,
+      color: theme.colors.onSurfaceVariant,
+      fontFamily: theme.fontFamilies.bodyMedium,
+    },
+    filtreTextActif: {
+      color: theme.colors.primary,
+    },
+    indice: {
+      paddingHorizontal: theme.spacing.md,
+      paddingBottom: theme.spacing.xs,
+      fontFamily: theme.fontFamilies.body,
+      fontSize: theme.fontSizes.labelMd,
+      color: theme.colors.onSurfaceVariant,
     },
     listeScroll: {
       flex: 1,
     },
     listeContenu: {
-      paddingBottom: theme.spacing.sm,
-    },
-    recherche: {
-      backgroundColor: theme.colors.surface,
-      borderWidth: 1,
-      borderColor: theme.colors.outline,
-      borderRadius: theme.radius.md,
-      padding: theme.spacing.sm,
-      color: theme.colors.onSurface,
-      fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
-      marginBottom: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
     },
     carte: {
-      backgroundColor: theme.colors.surfaceContainer,
+      backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.md,
       padding: theme.spacing.md,
-      borderLeftWidth: 3,
+      minHeight: 64,
+      borderLeftWidth: 4,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: theme.spacing.xs,
+      marginBottom: theme.spacing.sm,
+      overflow: 'hidden',
+      ...theme.elevation.card,
     },
     carteGauche: {
       flex: 1,
@@ -306,8 +351,8 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       alignItems: 'center',
     },
     boutonPayer: {
-      width: 36,
-      height: 36,
+      width: 48,
+      height: 48,
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.primary,
       alignItems: 'center',
@@ -316,12 +361,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     payeText: {
       color: theme.colors.success,
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: theme.fontSizes.labelMd,
     },
     enAttenteText: {
       color: theme.colors.onSurfaceVariant,
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: theme.fontSizes.labelMd,
     },
     vide: {
       color: theme.colors.onSurfaceVariant,
@@ -329,38 +374,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontSize: theme.fontSizes.bodyMd,
       textAlign: 'center',
       paddingVertical: theme.spacing.xl,
-    },
-    filtresBarre: {
-      backgroundColor: theme.colors.surface,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.outline,
-      padding: theme.spacing.sm,
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      gap: theme.spacing.sm,
-    },
-    filtre: {
-      flex: 1,
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.xs,
-      borderRadius: theme.radius.md,
-      borderWidth: 1,
-      borderColor: theme.colors.outline,
-      backgroundColor: 'transparent',
-      alignItems: 'center',
-    },
-    filtreActif: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary,
-    },
-    filtreText: {
-      fontSize: theme.fontSizes.labelMd,
-      color: theme.colors.onSurfaceVariant,
-      fontFamily: theme.fontFamilies.body,
-    },
-    filtreTextActif: {
-      color: theme.colors.onPrimary,
-      fontFamily: theme.fontFamilies.bodyMedium,
     },
   });
 }

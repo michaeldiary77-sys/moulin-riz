@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppBar, androidRipple } from '@/components/ui/material';
 import { listerJours, type Jour } from '@/lib/db/clients';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
@@ -37,13 +38,7 @@ export default function JourneeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: theme.spacing.md + insets.top }]}>
-        <MaterialCommunityIcons name="calendar" size={24} color={theme.colors.primary} />
-        <Text style={styles.headerTitle}>Journées</Text>
-        <View style={styles.profilCircle}>
-          <MaterialCommunityIcons name="account" size={24} color={theme.colors.onSurfaceVariant} />
-        </View>
-      </View>
+      <AppBar title="Journées" />
 
       <ScrollView
         style={styles.scroll}
@@ -66,6 +61,7 @@ export default function JourneeScreen() {
           jours.map((jour) => (
             <Pressable
               key={jour.date}
+              android_ripple={androidRipple(theme.colors.ripple)}
               style={styles.carte}
               onPress={() =>
                 router.push({ pathname: '/journee-detail', params: { date: jour.date } })
@@ -101,25 +97,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: theme.spacing.md,
-    },
-    headerTitle: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
-      color: theme.colors.primary,
-    },
-    profilCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     scroll: {
       flex: 1,
     },
@@ -139,13 +116,16 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       textAlign: 'center',
     },
     carte: {
-      backgroundColor: theme.colors.surfaceContainer,
+      backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.md,
       padding: theme.spacing.md,
+      minHeight: 64,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
       gap: theme.spacing.sm,
+      overflow: 'hidden',
+      ...theme.elevation.card,
     },
     carteGauche: {
       flex: 1,

@@ -3,33 +3,45 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppTheme } from '@/lib/theme/useAppTheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const theme = useAppTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.outline,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontFamily: theme.fontFamilies.bodyMedium,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Tarifs',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="tune" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="journee"
         options={{
           title: 'Journées',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="calendar-check" size={26} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="calendar-check" size={size} color={color} />
           ),
         }}
       />
@@ -37,8 +49,8 @@ export default function TabLayout() {
         name="dettes"
         options={{
           title: 'Dettes',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="cash-sync" size={26} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cash-sync" size={size} color={color} />
           ),
         }}
       />
@@ -46,8 +58,8 @@ export default function TabLayout() {
         name="synchronisation"
         options={{
           title: 'Sync',
-          tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="sync" size={26} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="sync" size={size} color={color} />
           ),
         }}
       />

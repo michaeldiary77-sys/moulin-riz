@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { AppBar, FilledButton } from '@/components/ui/material';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 import { definirTarifs, lireTarifs } from '@/lib/db/tarifs';
@@ -56,17 +57,11 @@ export default function TarifsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.primary} />
-        <Text style={styles.headerTitle}>Réglages des tarifs</Text>
-        <View style={styles.profilCircle}>
-          <MaterialCommunityIcons name="account" size={24} color={theme.colors.onSurfaceVariant} />
-        </View>
-      </View>
-
+    <View style={styles.container}>
+      <AppBar title="Tarifs" />
+      <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.texteBlock}>
-        <Text style={styles.texteLabel}>CONFIGURATION DU MOULIN</Text>
+        <Text style={styles.texteLabel}>Configuration du moulin</Text>
         <Text style={styles.texteTitre}>Ajustez vos prix de prestation</Text>
       </View>
 
@@ -75,7 +70,7 @@ export default function TarifsScreen() {
           <View style={styles.carteIcôneCercle}>
             <MaterialCommunityIcons name="cash" size={20} color={theme.colors.primary} />
           </View>
-          <Text style={styles.carteLibelle}>TARIF AR PAR KG</Text>
+          <Text style={styles.carteLibelle}>Tarif Ar par kg</Text>
         </View>
         <Text style={styles.carteDescription}>Prestation standard (maïs, grains divers)</Text>
         <View style={styles.valeurRow}>
@@ -98,7 +93,7 @@ export default function TarifsScreen() {
           <View style={styles.carteIcôneCercle}>
             <MaterialCommunityIcons name="basket" size={20} color={theme.colors.ar} />
           </View>
-          <Text style={styles.carteLibelle}>TARIF AR PAR KPK (RIZ)</Text>
+          <Text style={styles.carteLibelle}>Tarif Ar par Kpk (riz)</Text>
         </View>
         <Text style={styles.carteDescription}>Mesure spécifique pour le décorticage</Text>
         <View style={styles.valeurRow}>
@@ -128,14 +123,16 @@ export default function TarifsScreen() {
         </Text>
       </View>
 
-      <Pressable style={styles.button} onPress={handleEnregistrer}>
-        <MaterialCommunityIcons name="content-save" size={24} color={theme.colors.onPrimary} />
-        <Text style={styles.buttonText}>Enregistrer les tarifs</Text>
-      </Pressable>
+      <FilledButton
+        label="Enregistrer les tarifs"
+        icon={<MaterialCommunityIcons name="content-save" size={22} color={theme.colors.onPrimary} />}
+        onPress={handleEnregistrer}
+      />
 
       {erreur && <Text style={styles.erreur}>{erreur}</Text>}
       {enregistre && <Text style={styles.confirmation}>Tarifs enregistrés</Text>}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -149,33 +146,13 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       padding: theme.spacing.md,
       gap: theme.spacing.md,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: theme.spacing.md,
-    },
-    headerTitle: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
-      color: theme.colors.primary,
-    },
-    profilCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     texteBlock: {
       gap: theme.spacing.xs,
     },
     texteLabel: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
     },
     texteTitre: {
       fontFamily: theme.fontFamilies.headline,
@@ -202,7 +179,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       justifyContent: 'center',
     },
     carteLibelle: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
@@ -220,22 +197,24 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.surface,
       borderWidth: 1,
       borderColor: theme.colors.outline,
-      borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
-      fontSize: 32,
+      borderRadius: theme.radius.sm,
+      paddingHorizontal: theme.spacing.md,
+      minHeight: 56,
+      fontSize: theme.fontSizes.headlineMd,
       fontFamily: theme.fontFamilies.headline,
-      color: theme.colors.primary,
+      color: theme.colors.onSurface,
       minWidth: 120,
     },
     inputKpk: {
       backgroundColor: theme.colors.surface,
       borderWidth: 1,
       borderColor: theme.colors.outline,
-      borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
-      fontSize: 32,
+      borderRadius: theme.radius.sm,
+      paddingHorizontal: theme.spacing.md,
+      minHeight: 56,
+      fontSize: theme.fontSizes.headlineMd,
       fontFamily: theme.fontFamilies.headline,
-      color: theme.colors.ar,
+      color: theme.colors.onSurface,
       minWidth: 120,
     },
     unite: {
@@ -255,20 +234,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontSize: theme.fontSizes.bodyMd,
       color: theme.colors.onSurfaceVariant,
       flex: 1,
-    },
-    button: {
-      backgroundColor: theme.colors.primary,
-      borderRadius: theme.radius.lg,
-      padding: theme.spacing.md,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.sm,
-    },
-    buttonText: {
-      color: theme.colors.onPrimary,
-      fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: theme.fontSizes.bodyMd,
     },
     confirmation: {
       color: theme.colors.success,

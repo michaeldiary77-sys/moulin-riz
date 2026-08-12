@@ -55,7 +55,7 @@ export default function JourneeDetailScreen() {
           { paddingBottom: theme.spacing.xl + insets.bottom },
         ]}>
         <View style={styles.texteBlock}>
-          <Text style={styles.texteLabel}>JOURNÉE IMPORTÉE</Text>
+          <Text style={styles.texteLabel}>Journée importée</Text>
           <Text style={styles.texteTitre}>{dateLibelle}</Text>
           <Text style={styles.texteCompte}>
             {clients.length} client{clients.length > 1 ? 's' : ''}
@@ -113,10 +113,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       marginBottom: theme.spacing.sm,
     },
     texteLabel: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
     },
     texteTitre: {
       fontFamily: theme.fontFamilies.headline,

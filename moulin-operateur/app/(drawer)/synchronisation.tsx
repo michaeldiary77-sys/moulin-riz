@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { File } from 'expo-file-system';
-import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppBar, FilledButton, androidRipple } from '@/components/ui/material';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 import { exporterDettes, exporterJournee, partagerFichier } from '@/lib/sync/export';
 import { importerDettes, importerTarifs, type ResultatImport } from '@/lib/sync/import';
@@ -13,7 +13,6 @@ import { importerDettes, importerTarifs, type ResultatImport } from '@/lib/sync/
 export default function SynchronisationScreen() {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [occupé, setOccupé] = useState(false);
   const [dateSelectionnee, setDateSelectionnee] = useState(() => new Date());
@@ -94,17 +93,7 @@ export default function SynchronisationScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: theme.spacing.md + insets.top }]}>
-        <View style={styles.headerGauche}>
-          <Pressable onPress={() => (navigation as any).openDrawer()}>
-            <MaterialCommunityIcons name="menu" size={28} color={theme.colors.primary} />
-          </Pressable>
-          <View style={styles.headerCercle}>
-            <MaterialCommunityIcons name="sync" size={24} color={theme.colors.onPrimary} />
-          </View>
-          <Text style={styles.headerTitre}>Synchronisation</Text>
-        </View>
-      </View>
+      <AppBar title="Synchronisation" />
 
       <ScrollView
         style={styles.scroll}
@@ -116,7 +105,10 @@ export default function SynchronisationScreen() {
 
         <Text style={styles.sectionTitre}>EXPORTER VERS LE PATRON</Text>
         <View style={styles.carte}>
-          <Pressable style={styles.ligneAction} onPress={() => setAfficherPicker(true)}>
+          <Pressable
+            android_ripple={androidRipple(theme.colors.ripple)}
+            style={styles.ligneAction}
+            onPress={() => setAfficherPicker(true)}>
             <View style={styles.ligneActionIcone}>
               <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
             </View>
@@ -129,34 +121,36 @@ export default function SynchronisationScreen() {
             <MaterialCommunityIcons name="chevron-right" size={22} color={theme.colors.outline} />
           </Pressable>
 
-          <Pressable style={styles.bouton} onPress={exporterJourneeAction} disabled={occupé}>
-            <MaterialCommunityIcons name="file-export" size={20} color={theme.colors.onPrimary} />
-            <Text style={styles.boutonTexte}>Exporter la journée ({dateAffichee})</Text>
-          </Pressable>
+          <FilledButton
+            disabled={occupé}
+            label={`Exporter la journée (${dateAffichee})`}
+            icon={<MaterialCommunityIcons name="file-export" size={20} color={theme.colors.onPrimary} />}
+            onPress={exporterJourneeAction}
+          />
 
-          <Pressable style={styles.bouton} onPress={exporterDettesAction} disabled={occupé}>
-            <MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />
-            <Text style={styles.boutonTexte}>Exporter les dettes (journal complet)</Text>
-          </Pressable>
+          <FilledButton
+            disabled={occupé}
+            label="Exporter les dettes (journal complet)"
+            icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
+            onPress={exporterDettesAction}
+          />
         </View>
 
         <Text style={styles.sectionTitre}>IMPORTER DEPUIS LE PATRON</Text>
         <View style={styles.carte}>
-          <Pressable
-            style={styles.bouton}
+          <FilledButton
+            disabled={occupé}
+            label="Importer les tarifs (CSV)"
+            icon={<MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />}
             onPress={() => importerFichier(importerTarifs, 'les tarifs')}
-            disabled={occupé}>
-            <MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />
-            <Text style={styles.boutonTexte}>Importer les tarifs (CSV)</Text>
-          </Pressable>
+          />
 
-          <Pressable
-            style={styles.bouton}
+          <FilledButton
+            disabled={occupé}
+            label="Importer les dettes (CSV)"
+            icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
             onPress={() => importerFichier(importerDettes, 'les dettes')}
-            disabled={occupé}>
-            <MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />
-            <Text style={styles.boutonTexte}>Importer les dettes (CSV)</Text>
-          </Pressable>
+          />
         </View>
 
         <View style={styles.infoBox}>
@@ -179,9 +173,14 @@ export default function SynchronisationScreen() {
           mode="date"
           maximumDate={new Date()}
           onChange={(event, date) => {
-            setAfficherPicker(false);
-            if (date) {
+            if (Platform.OS === 'android') {
+              setAfficherPicker(false);
+            }
+            if (event.type === 'set' && date) {
               setDateSelectionnee(date);
+            }
+            if (event.type === 'dismissed') {
+              setAfficherPicker(false);
             }
           }}
         />
@@ -196,29 +195,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: theme.spacing.md,
-    },
-    headerGauche: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-    },
-    headerCercle: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    headerTitre: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
-      color: theme.colors.primary,
-    },
     scroll: {
       flex: 1,
     },
@@ -232,10 +208,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       color: theme.colors.onSurfaceVariant,
     },
     sectionTitre: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
       marginTop: theme.spacing.xs,
     },
     carte: {
@@ -247,7 +222,10 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     ligneAction: {
       flexDirection: 'row',
       alignItems: 'center',
+      minHeight: 48,
       gap: theme.spacing.sm,
+      overflow: 'hidden',
+      borderRadius: theme.radius.md,
     },
     ligneActionIcone: {
       width: 36,

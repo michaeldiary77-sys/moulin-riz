@@ -1,15 +1,14 @@
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DetailDette } from '@/components/DetailDette';
 import { ListeClientsJour } from '@/components/ListeClientsJour';
 import { PopupEncaissement } from '@/components/PopupEncaissement';
 import { PopupModifierClient } from '@/components/PopupModifierClient';
 import { PopupNouveauClient } from '@/components/PopupNouveauClient';
+import { AppBar, TextButton, androidRipple } from '@/components/ui/material';
 import { useProfilActif } from '@/lib/context/ProfilActifContext';
 import type { ClientJour } from '@/lib/db/clients';
 import { trouverDetteClient, type Dette } from '@/lib/db/dettes';
@@ -19,8 +18,6 @@ export default function AccueilScreen() {
   const { profilActif, definirProfilActif } = useProfilActif();
   const theme = useAppTheme();
   const styles = makeStyles(theme);
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [refreshKey, setRefreshKey] = useState(0);
   const [popupNouveauVisible, setPopupNouveauVisible] = useState(false);
   const [clientAEncaisser, setClientAEncaisser] = useState<ClientJour | null>(null);
@@ -29,15 +26,11 @@ export default function AccueilScreen() {
   const [afficherPicker, setAfficherPicker] = useState(false);
   const [detteDetail, setDetteDetail] = useState<Dette | null>(null);
 
-  // Date au format "AAAA-MM-JJ" construite depuis la date choisie.
   const annee = dateSelectionnee.getFullYear();
   const mois = String(dateSelectionnee.getMonth() + 1).padStart(2, '0');
   const jour = String(dateSelectionnee.getDate()).padStart(2, '0');
   const dateAffichee = `${annee}-${mois}-${jour}`;
 
-  // Remboursement d'une dette auto depuis l'historique d'une date passée :
-  // on retrouve la Dette+ liée au client du jour (clientJourId) puis on
-  // ouvre le même modal de détail que l'écran Dettes.
   async function ouvrirDetailDette(client: ClientJour) {
     const dette = await trouverDetteClient(client.id);
     if (dette) {
@@ -53,33 +46,25 @@ export default function AccueilScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.topBar, { paddingTop: theme.spacing.md + insets.top }]}>
-        <View style={styles.topBarLeft}>
-          <Pressable onPress={() => (navigation as any).openDrawer()}>
-            <MaterialCommunityIcons name="menu" size={28} color={theme.colors.primary} />
-          </Pressable>
+      <AppBar
+        title="Accueil"
+        subtitle={profilActif?.nom ? `Opérateur : ${profilActif.nom}` : undefined}
+        left={
           <View style={styles.avatar}>
             <Text style={styles.avatarLetter}>
               {profilActif?.nom?.charAt(0).toUpperCase() ?? ''}
             </Text>
           </View>
-          <View style={styles.topBarText}>
-            <Text style={styles.operateurLabel}>
-              Opérateur : {profilActif?.nom}
-            </Text>
-            <Text style={styles.moulinTitre}>Moulin de Riz</Text>
-          </View>
-        </View>
-        <Pressable style={styles.changerButton} onPress={() => definirProfilActif(null)}>
-          <Text style={styles.changerButtonText}>Changer</Text>
-        </Pressable>
-      </View>
+        }
+        right={<TextButton label="Changer" onPress={() => definirProfilActif(null)} />}
+      />
 
       <View style={styles.dateBar}>
         <Pressable
           style={styles.dateBarZone}
+          android_ripple={androidRipple(theme.colors.ripple)}
           onPress={() => setAfficherPicker(true)}>
-          <MaterialCommunityIcons name="calendar" size={22} color={theme.colors.primary} />
+          <MaterialCommunityIcons name="calendar" size={22} color={theme.colors.onSurfaceVariant} />
           <Text style={styles.dateBarText}>
             {dateSelectionnee.toLocaleDateString('fr-FR', {
               day: 'numeric',
@@ -88,11 +73,7 @@ export default function AccueilScreen() {
             })}
           </Text>
         </Pressable>
-        <Pressable
-          style={styles.aujourdhuiButton}
-          onPress={() => setDateSelectionnee(new Date())}>
-          <Text style={styles.aujourdhuiButtonText}>Aujourd&apos;hui</Text>
-        </Pressable>
+        <TextButton label="Aujourd'hui" onPress={() => setDateSelectionnee(new Date())} />
       </View>
 
       {afficherPicker && (
@@ -101,9 +82,14 @@ export default function AccueilScreen() {
           mode="date"
           maximumDate={new Date()}
           onChange={(event, date) => {
-            setAfficherPicker(false);
-            if (date) {
+            if (Platform.OS === 'android') {
+              setAfficherPicker(false);
+            }
+            if (event.type === 'set' && date) {
               setDateSelectionnee(date);
+            }
+            if (event.type === 'dismissed') {
+              setAfficherPicker(false);
             }
           }}
         />
@@ -120,8 +106,13 @@ export default function AccueilScreen() {
         />
       </View>
 
-      <Pressable style={styles.fab} onPress={() => setPopupNouveauVisible(true)}>
-        <MaterialCommunityIcons name="plus" size={32} color={theme.colors.onPrimary} />
+      <Pressable
+        style={styles.fab}
+        accessibilityRole="button"
+        accessibilityLabel="Nouveau client"
+        android_ripple={androidRipple(theme.colors.ripple, true)}
+        onPress={() => setPopupNouveauVisible(true)}>
+        <MaterialCommunityIcons name="plus" size={28} color={theme.colors.onPrimary} />
       </Pressable>
 
       <PopupNouveauClient
@@ -160,23 +151,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    topBar: {
-      backgroundColor: theme.colors.surface,
-      padding: theme.spacing.md,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    topBarLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-    },
     avatar: {
       width: 40,
       height: 40,
+      marginHorizontal: 4,
       borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.surfaceContainerHigh,
+      backgroundColor: theme.colors.primaryContainer,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -185,44 +165,22 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontSize: theme.fontSizes.bodyLg,
       color: theme.colors.primary,
     },
-    topBarText: {
-      gap: 2,
-    },
-    operateurLabel: {
-      fontFamily: theme.fontFamilies.mono,
-      fontSize: theme.fontSizes.labelMd,
-      color: theme.colors.onSurfaceVariant,
-    },
-    moulinTitre: {
-      fontFamily: theme.fontFamilies.headlineSemiBold,
-      color: theme.colors.primary,
-    },
-    changerButton: {
-      borderWidth: 1,
-      borderColor: theme.colors.primary,
-      borderRadius: theme.radius.md,
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.sm,
-    },
-    changerButtonText: {
-      color: theme.colors.primary,
-      fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
-    },
     dateBar: {
       backgroundColor: theme.colors.surface,
-      padding: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: theme.spacing.sm,
-      borderBottomWidth: 1,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.outline,
     },
     dateBarZone: {
       flex: 1,
+      minHeight: 48,
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.sm,
     },
     dateBarText: {
       flex: 1,
@@ -230,24 +188,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontSize: theme.fontSizes.bodyMd,
       color: theme.colors.onSurface,
     },
-    aujourdhuiButton: {
-      borderWidth: 1,
-      borderColor: theme.colors.primary,
-      borderRadius: theme.radius.md,
-      paddingHorizontal: theme.spacing.sm,
-      paddingVertical: theme.spacing.xs,
-    },
-    aujourdhuiButtonText: {
-      color: theme.colors.primary,
-      fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
-    },
     listeWrapper: {
       flex: 1,
     },
     fab: {
       position: 'absolute',
-      bottom: theme.spacing.xl,
+      bottom: theme.spacing.lg,
       right: theme.spacing.lg,
       width: 56,
       height: 56,
@@ -255,6 +201,8 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
+      ...theme.elevation.fab,
     },
   });
 }

@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppBar } from '@/components/ui/material';
 import { listerDettes, listerIdsCorrections, type Dette } from '@/lib/db/dettes';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
@@ -46,13 +47,7 @@ export default function DettesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: theme.spacing.md + insets.top }]}>
-        <MaterialCommunityIcons name="cash" size={24} color={theme.colors.primary} />
-        <Text style={styles.headerTitle}>Dettes</Text>
-        <View style={styles.profilCircle}>
-          <MaterialCommunityIcons name="account" size={24} color={theme.colors.onSurfaceVariant} />
-        </View>
-      </View>
+      <AppBar title="Dettes" />
 
       <ScrollView
         style={styles.scroll}
@@ -75,7 +70,7 @@ export default function DettesScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitre}>HISTORIQUE</Text>
+        <Text style={styles.sectionTitre}>Historique</Text>
         {dettes.length === 0 ? (
           <View style={styles.vide}>
             <MaterialCommunityIcons name="cash-off" size={40} color={theme.colors.outline} />
@@ -132,25 +127,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       flex: 1,
       backgroundColor: theme.colors.background,
     },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: theme.spacing.md,
-    },
-    headerTitle: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
-      color: theme.colors.primary,
-    },
-    profilCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: theme.radius.full,
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     scroll: {
       flex: 1,
     },
@@ -170,7 +146,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       gap: theme.spacing.xs,
     },
     statLibelle: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
@@ -179,10 +155,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontSize: theme.fontSizes.headlineSm,
     },
     sectionTitre: {
-      fontFamily: theme.fontFamilies.mono,
+      fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
-      letterSpacing: 1,
       marginTop: theme.spacing.xs,
     },
     vide: {
