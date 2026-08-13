@@ -60,6 +60,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
           <Stack.Screen name="journee-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="graphiques" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

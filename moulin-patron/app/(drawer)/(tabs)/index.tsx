@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { AppBar, IconButton, androidRipple } from '@/components/ui/material';
 import { listerClientsEntre, type ClientJour } from '@/lib/db/clients';
@@ -38,6 +38,7 @@ function formaterNombre(n: number, decimales = 0): string {
 export default function DashboardScreen() {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
+  const router = useRouter();
   const [granularite, setGranularite] = useState<Granularite>('jour');
   const [pivot, setPivot] = useState(dateDuJourLocal);
   const [intervalle, setIntervalle] = useState<Intervalle>(() => {
@@ -110,7 +111,12 @@ export default function DashboardScreen() {
     };
   }, [clients, dettes, corrigees, bornes]);
 
-  function aller(sens: -1 | 1) {
+  function revenirAujourdhui() {
+    const j = dateDuJourLocal();
+    setGranularite('jour');
+    setPivot(j);
+    setIntervalle({ debut: j, fin: j });
+  }
     const suivant = decalerPeriode(granularite, pivot, intervalle, sens);
     setPivot(suivant.pivot);
     setIntervalle(suivant.intervalle);
@@ -142,9 +148,17 @@ export default function DashboardScreen() {
         <IconButton accessibilityLabel="Période précédente" onPress={() => aller(-1)}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={theme.colors.onSurface} />
         </IconButton>
-        <Text style={styles.libellePeriode} numberOfLines={2}>
-          {libellePeriode(granularite, bornes)}
-        </Text>
+        <View style={styles.centrePeriode}>
+          <Text style={styles.libellePeriode} numberOfLines={2}>
+            {libellePeriode(granularite, bornes)}
+          </Text>
+          <Pressable
+            android_ripple={androidRipple(theme.colors.ripple)}
+            style={styles.btnAujourdhui}
+            onPress={revenirAujourdhui}>
+            <Text style={styles.btnAujourdhuiTexte}>Aujourd'hui</Text>
+          </Pressable>
+        </View>
         <IconButton accessibilityLabel="Période suivante" onPress={() => aller(1)}>
           <MaterialCommunityIcons name="chevron-right" size={28} color={theme.colors.onSurface} />
         </IconButton>
@@ -191,7 +205,22 @@ export default function DashboardScreen() {
         />
       )}
 
-      <ScrollView contentContainerStyle={styles.contenu}>
+      <Pressable
+        android_ripple={androidRipple(theme.colors.ripple)}
+        style={styles.btnGraph}
+        onPress={() =>
+          router.push({
+            pathname: '/graphiques',
+            params: {
+              debut: bornes.debut,
+              fin: bornes.fin,
+              libelle: libellePeriode(granularite, bornes),
+            },
+          })
+        }>
+        <MaterialCommunityIcons name="chart-bar" size={20} color={theme.colors.onPrimary} />
+        <Text style={styles.btnGraphTexte}>Accès aux représentations graphiques</Text>
+      </Pressable>
         <Text style={styles.section}>Activité</Text>
         <View style={styles.grille}>
           <CarteKpi titre="Clients" valeur={formaterNombre(kpis.nbClients)} />
