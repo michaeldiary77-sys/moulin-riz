@@ -174,7 +174,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.surfaceContainerHigh,
       borderRadius: theme.radius.lg,
       padding: theme.spacing.md,
-      minHeight: 88,
+      minHeight: 64,
       justifyContent: 'center',
       ...theme.elevation.card,
     },
@@ -196,7 +196,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     miniCard: {
       flexGrow: 1,
       flexBasis: '45%',
-      minHeight: 72,
+      minHeight: 56,
       backgroundColor: theme.colors.surfaceContainerHigh,
       borderRadius: theme.radius.md,
       padding: theme.spacing.md,

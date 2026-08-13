@@ -118,8 +118,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     carte: {
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
-      minHeight: 64,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      minHeight: 52,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',

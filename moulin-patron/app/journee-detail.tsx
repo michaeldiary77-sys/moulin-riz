@@ -119,7 +119,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     texteTitre: {
       fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineMd,
+      fontSize: theme.fontSizes.headlineSm,
       color: theme.colors.onSurface,
     },
     texteCompte: {
@@ -141,7 +141,8 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     carte: {
       backgroundColor: theme.colors.surfaceContainer,
       borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',

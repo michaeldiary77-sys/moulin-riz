@@ -27,7 +27,7 @@ export default function TabLayout() {
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontFamily: theme.fontFamilies.bodyMedium,
         },
       }}>

@@ -329,8 +329,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     carte: {
       backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
-      minHeight: 64,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      minHeight: 52,
       borderLeftWidth: 4,
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -357,8 +358,8 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       alignItems: 'center',
     },
     boutonPayer: {
-      width: 48,
-      height: 48,
+      width: 40,
+      height: 40,
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.primary,
       alignItems: 'center',

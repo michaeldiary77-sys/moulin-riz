@@ -141,9 +141,10 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     statCarte: {
       flex: 1,
       backgroundColor: theme.colors.surfaceContainerHigh,
-      borderRadius: theme.radius.lg,
-      padding: theme.spacing.md,
-      gap: theme.spacing.xs,
+      borderRadius: theme.radius.md,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      gap: 2,
     },
     statLibelle: {
       fontFamily: theme.fontFamilies.bodyMedium,
@@ -206,8 +207,8 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       paddingHorizontal: theme.spacing.sm,
     },
     carteBadgeTexte: {
-      fontFamily: theme.fontFamilies.mono,
-      fontSize: theme.fontSizes.labelMd,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.labelSm,
       color: theme.colors.onSurfaceVariant,
     },
     carteHeure: {

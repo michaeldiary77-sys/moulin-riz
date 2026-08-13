@@ -133,7 +133,7 @@ export function AppBar({
             numberOfLines={1}
             style={{
               fontFamily: theme.fontFamilies.headlineSemiBold,
-              fontSize: theme.fontSizes.headlineMd,
+              fontSize: theme.fontSizes.headlineSm,
               color: theme.colors.onSurface,
             }}>
             {title}

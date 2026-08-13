@@ -143,10 +143,12 @@ export function EcranDettes({ type }: { type: TypeDette }) {
       </View>
 
       <ScrollView style={styles.listeScroll} contentContainerStyle={styles.listeContenu}>
-        {dettesDuType.length === 0 ? (
-          <Text style={styles.vide}>{messageVide}</Text>
+        {dettesFiltrees.length === 0 ? (
+          <Text style={styles.vide}>
+            {dettesDuType.length === 0 ? messageVide : 'Aucun résultat'}
+          </Text>
         ) : (
-          dettesRecentAvant.map((dette) => {
+          dettesFiltrees.map((dette) => {
             const estCorrigee = corrigees.has(dette.id);
             return (
             <Pressable
@@ -228,21 +230,21 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.surfaceContainerHigh,
       borderRadius: theme.radius.md,
       paddingHorizontal: theme.spacing.sm,
-      paddingVertical: 6,
+      paddingVertical: theme.spacing.sm,
       gap: 0,
     },
     carteLibelle: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: 11,
+      fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
     total: {
       fontFamily: theme.fontFamilies.headline,
-      fontSize: 16,
+      fontSize: theme.fontSizes.headlineSm,
     },
     carteDetail: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: 11,
+      fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
     rechercheWrap: {
@@ -259,7 +261,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       minHeight: 44,
       color: theme.colors.onSurface,
       fontFamily: theme.fontFamilies.body,
-      fontSize: 14,
+      fontSize: theme.fontSizes.bodyMd,
     },
     historiqueHeader: {
       flexDirection: 'row',
@@ -268,12 +270,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     historiqueTitre: {
       fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: 14,
+      fontSize: theme.fontSizes.bodyMd,
       color: theme.colors.onSurface,
     },
     historiqueCompte: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: 11,
+      fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
       flexShrink: 1,
       textAlign: 'right',
@@ -289,7 +291,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     vide: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: 13,
+      fontSize: theme.fontSizes.bodyMd,
       color: theme.colors.onSurfaceVariant,
       textAlign: 'center',
       paddingVertical: theme.spacing.xl,
@@ -298,7 +300,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       backgroundColor: theme.colors.surfaceContainer,
       borderRadius: theme.radius.md,
       paddingHorizontal: theme.spacing.sm,
-      paddingVertical: 8,
+      paddingVertical: theme.spacing.sm,
       borderLeftWidth: 3,
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -314,12 +316,12 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     ligneNom: {
       fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: 13,
+      fontSize: theme.fontSizes.bodyMd,
       color: theme.colors.onSurface,
     },
     ligneMotif: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: 11,
+      fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
     ligneBadge: {
@@ -331,7 +333,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     ligneBadgeText: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: 10,
+      fontSize: theme.fontSizes.labelSm,
       color: theme.colors.onSurfaceVariant,
     },
     ligneDroite: {
@@ -340,21 +342,21 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     ligneMontant: {
       fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: 13,
+      fontSize: theme.fontSizes.bodyMd,
     },
     ligneHeure: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: 11,
+      fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
     },
     ligneRemboursee: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: 10,
+      fontSize: theme.fontSizes.labelSm,
       color: theme.colors.success,
     },
     ligneCorrigee: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: 10,
+      fontSize: theme.fontSizes.labelSm,
       color: theme.colors.error,
     },
     fab: {
