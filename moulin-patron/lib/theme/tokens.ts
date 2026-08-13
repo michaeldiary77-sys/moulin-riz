@@ -54,9 +54,9 @@ export const radius = {
 export const spacing = {
   xs: 4,
   sm: 8,
-  md: 16,
-  lg: 20,
-  xl: 28,
+  md: 12,
+  lg: 16,
+  xl: 24,
 };
 
 export const fontFamilies = {
@@ -67,13 +67,15 @@ export const fontFamilies = {
   mono: 'Inter_500Medium',
 };
 
+/** Barème Dettes (référence) + 1 cran : labels 12, corps 15, titres 17/20. */
 export const fontSizes = {
-  headlineLg: 28,
-  headlineMd: 22,
-  headlineSm: 18,
-  bodyLg: 16,
-  bodyMd: 16,
-  labelMd: 14,
+  headlineLg: 22,
+  headlineMd: 20,
+  headlineSm: 17,
+  bodyLg: 15,
+  bodyMd: 15,
+  labelMd: 12,
+  labelSm: 11,
 };
 
 export const elevation = {
