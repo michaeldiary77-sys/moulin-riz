@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-
 
 import { DetailDette } from '@/components/DetailDette';
 import { PopupAjouterDette } from '@/components/PopupAjouterDette';
 import { AppBar, androidRipple } from '@/components/ui/material';
 import { listerDettes, listerIdsCorrections, type Dette } from '@/lib/db/dettes';
+import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
 type TypeDette = 'dette_plus' | 'dette_moins';
@@ -30,6 +30,9 @@ export function EcranDettes({ type }: { type: TypeDette }) {
   const [popupVisible, setPopupVisible] = useState(false);
   const [detteDetail, setDetteDetail] = useState<Dette | null>(null);
   const [corrigees, setCorrigees] = useState<Set<string>>(new Set());
+  const [recherche, setRecherche] = useState('');
+  const rechercheRef = useRef<TextInput>(null);
+  useStabiliteClavier([rechercheRef]);
 
   // Même mécanisme que l'Accueil : chaque nouvelle action (ajout, remboursement,
   // suppression) ou retour au focus incrémente refreshKey, et le useEffect
@@ -94,34 +97,48 @@ export function EcranDettes({ type }: { type: TypeDette }) {
   }
 
   const dettesRecentAvant = [...dettesDuType].reverse();
+  const texteRecherche = recherche.trim().toLowerCase();
+  const dettesFiltrees = !texteRecherche
+    ? dettesRecentAvant
+    : dettesRecentAvant.filter((dette) => {
+        const nomOK = dette.clientNom.toLowerCase().includes(texteRecherche);
+        const motifOK = (dette.motif ?? '').toLowerCase().includes(texteRecherche);
+        const montantOK = String(dette.montant).includes(texteRecherche);
+        const heureOK = heureAffichee(dette.createdAt).toLowerCase().includes(texteRecherche);
+        return nomOK || motifOK || montantOK || heureOK;
+      });
 
   return (
     <View style={styles.container}>
       <AppBar title={titre} />
 
       <View style={styles.blocStats}>
-        <View style={styles.statsRow}>
-          <View style={styles.carte}>
-            <Text style={styles.carteLibelle}>{libelleTotal}</Text>
-            <Text style={[styles.total, { color: couleurTotal }]}>{total} Ar</Text>
-            <Text style={styles.carteDetail}>
-              {clientsConcernes} client{clientsConcernes > 1 ? 's' : ''}
-            </Text>
-          </View>
+        <View style={styles.carte}>
+          <Text style={styles.carteLibelle}>{libelleTotal}</Text>
+          <Text style={[styles.total, { color: couleurTotal }]}>{total} Ar</Text>
+          <Text style={styles.carteDetail}>
+            {clientsConcernes} client{clientsConcernes > 1 ? 's' : ''}
+          </Text>
+        </View>
 
-          <View style={styles.carte}>
-            <Text style={styles.carteLibelle}>Récents</Text>
-            <Text style={styles.carteDetail} numberOfLines={2}>
-              {derniereDette
-                ? tempsEcoule(derniereDette.createdAt)
-                : 'Aucun mouvement'}
-            </Text>
-          </View>
+        <View style={styles.rechercheWrap}>
+          <MaterialCommunityIcons name="magnify" size={20} color={theme.colors.onSurfaceVariant} />
+          <TextInput
+            style={styles.recherche}
+            value={recherche}
+            onChangeText={setRecherche}
+            placeholder="Rechercher (nom, motif, montant)"
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+            ref={rechercheRef}
+          />
         </View>
 
         <View style={styles.historiqueHeader}>
           <Text style={styles.historiqueTitre}>Historique</Text>
-          <Text style={styles.historiqueCompte}>{dettesDuType.length} mouvements</Text>
+          <Text style={styles.historiqueCompte}>
+            {dettesFiltrees.length} mouvement{dettesFiltrees.length > 1 ? 's' : ''}
+            {derniereDette ? ` · récent ${tempsEcoule(derniereDette.createdAt)}` : ''}
+          </Text>
         </View>
       </View>
 
@@ -203,27 +220,46 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     blocStats: {
       paddingHorizontal: theme.spacing.md,
-      gap: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
+      gap: theme.spacing.sm,
     },
     carte: {
+      alignSelf: 'flex-start',
       backgroundColor: theme.colors.surfaceContainerHigh,
-      borderRadius: theme.radius.lg,
-      padding: theme.spacing.lg,
-      gap: theme.spacing.xs,
+      borderRadius: theme.radius.md,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: 6,
+      gap: 0,
     },
     carteLibelle: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
+      fontSize: 11,
       color: theme.colors.onSurfaceVariant,
     },
     total: {
       fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineLg,
+      fontSize: 16,
     },
     carteDetail: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 11,
       color: theme.colors.onSurfaceVariant,
+    },
+    rechercheWrap: {
+      minHeight: 44,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.surfaceContainerHigh,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    recherche: {
+      flex: 1,
+      minHeight: 44,
+      color: theme.colors.onSurface,
+      fontFamily: theme.fontFamilies.body,
+      fontSize: 14,
     },
     historiqueHeader: {
       flexDirection: 'row',
@@ -231,14 +267,17 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       alignItems: 'center',
     },
     historiqueTitre: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineSm,
+      fontFamily: theme.fontFamilies.headlineSemiBold,
+      fontSize: 14,
       color: theme.colors.onSurface,
     },
     historiqueCompte: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 11,
       color: theme.colors.onSurfaceVariant,
+      flexShrink: 1,
+      textAlign: 'right',
+      marginLeft: theme.spacing.sm,
     },
     listeScroll: {
       flex: 1,
@@ -250,7 +289,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     vide: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 13,
       color: theme.colors.onSurfaceVariant,
       textAlign: 'center',
       paddingVertical: theme.spacing.xl,
@@ -258,7 +297,8 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     ligneCarte: {
       backgroundColor: theme.colors.surfaceContainer,
       borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: 8,
       borderLeftWidth: 3,
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -270,51 +310,51 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     ligneGauche: {
       flex: 1,
-      gap: theme.spacing.xs,
+      gap: 2,
     },
     ligneNom: {
       fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 13,
       color: theme.colors.onSurface,
     },
     ligneMotif: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 11,
       color: theme.colors.onSurfaceVariant,
     },
     ligneBadge: {
       alignSelf: 'flex-start',
       borderRadius: theme.radius.full,
       backgroundColor: theme.colors.surfaceContainerHigh,
-      paddingVertical: theme.spacing.xs,
-      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: 1,
+      paddingHorizontal: 6,
     },
     ligneBadgeText: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
+      fontSize: 10,
       color: theme.colors.onSurfaceVariant,
     },
     ligneDroite: {
       alignItems: 'flex-end',
-      gap: theme.spacing.xs,
+      gap: 1,
     },
     ligneMontant: {
       fontFamily: theme.fontFamilies.headlineSemiBold,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 13,
     },
     ligneHeure: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: 11,
       color: theme.colors.onSurfaceVariant,
     },
     ligneRemboursee: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
+      fontSize: 10,
       color: theme.colors.success,
     },
     ligneCorrigee: {
       fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
+      fontSize: 10,
       color: theme.colors.error,
     },
     fab: {
