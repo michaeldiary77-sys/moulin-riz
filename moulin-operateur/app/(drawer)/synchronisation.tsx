@@ -160,9 +160,9 @@ export default function SynchronisationScreen() {
             color={theme.colors.onSurfaceVariant}
           />
           <Text style={styles.infoTexte}>
-            Transférez les fichiers vers l&apos;autre téléphone (Partage à proximité, Bluetooth ou
-            e-mail), puis importez-les depuis l&apos;autre application. Les lignes déjà connues sont
-            ignorées : un fichier peut être envoyé plusieurs fois sans créer de doublons.
+            Les dettes s&apos;échangent dans les deux sens (journal complet). Les lignes déjà
+            connues sont ignorées ; un remboursement ou une annulation faite sur l&apos;autre
+            téléphone arrive à l&apos;import. Exportez aussi la journée et importez les tarifs.
           </Text>
         </View>
       </ScrollView>
