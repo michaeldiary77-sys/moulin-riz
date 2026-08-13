@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { FilledButton, TextButton } from '@/components/ui/material';
 import { ajouterClient } from '@/lib/db/clients';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { dateDuJourLocal } from '@/lib/utils/date';
@@ -158,11 +157,36 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       fontSize: theme.fontSizes.labelMd,
     },
     actions: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
       marginTop: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    boutonAjouter: {
+      minHeight: 48,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    boutonAjouterTexte: {
+      color: theme.colors.onPrimary,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
+    },
+    boutonAnnuler: {
+      minHeight: 48,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.surfaceContainerHigh,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    boutonAnnulerTexte: {
+      color: theme.colors.onSurface,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
     },
   });
 }

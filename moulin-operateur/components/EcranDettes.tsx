@@ -100,22 +100,23 @@ export function EcranDettes({ type }: { type: TypeDette }) {
       <AppBar title={titre} />
 
       <View style={styles.blocStats}>
-        <View style={styles.carte}>
-          <Text style={styles.carteLibelle}>{libelleTotal}</Text>
-          <Text style={[styles.total, { color: couleurTotal }]}>{total} Ar</Text>
-          <Text style={styles.carteDetail}>
-            {clientsConcernes} client{clientsConcernes > 1 ? 's' : ''} concerné
-            {clientsConcernes > 1 ? 's' : ''}
-          </Text>
-        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.carte}>
+            <Text style={styles.carteLibelle}>{libelleTotal}</Text>
+            <Text style={[styles.total, { color: couleurTotal }]}>{total} Ar</Text>
+            <Text style={styles.carteDetail}>
+              {clientsConcernes} client{clientsConcernes > 1 ? 's' : ''}
+            </Text>
+          </View>
 
-        <View style={styles.carte}>
-          <Text style={styles.carteLibelle}>MOUVEMENTS RÉCENTS</Text>
-          <Text style={styles.carteDetail}>
-            {derniereDette
-              ? `Dernier : ${tempsEcoule(derniereDette.createdAt)}`
-              : 'Aucun mouvement'}
-          </Text>
+          <View style={styles.carte}>
+            <Text style={styles.carteLibelle}>Récents</Text>
+            <Text style={styles.carteDetail} numberOfLines={2}>
+              {derniereDette
+                ? tempsEcoule(derniereDette.createdAt)
+                : 'Aucun mouvement'}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.historiqueHeader}>
@@ -228,7 +229,6 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginTop: theme.spacing.sm,
     },
     historiqueTitre: {
       fontFamily: theme.fontFamilies.headline,
@@ -246,7 +246,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     listeContenu: {
       paddingHorizontal: theme.spacing.md,
       paddingTop: theme.spacing.xs,
-      paddingBottom: theme.spacing.sm,
+      paddingBottom: 80,
     },
     vide: {
       fontFamily: theme.fontFamilies.body,
@@ -319,7 +319,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     fab: {
       position: 'absolute',
-      bottom: 72,
+      bottom: 20,
       right: theme.spacing.lg,
       width: 56,
       height: 56,

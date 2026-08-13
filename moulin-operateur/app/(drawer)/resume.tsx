@@ -1,32 +1,41 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppBar, TextButton } from '@/components/ui/material';
+import { AppBar, TextButton, androidRipple } from '@/components/ui/material';
 import { useProfilActif } from '@/lib/context/ProfilActifContext';
 import { listerClientsDuJour } from '@/lib/db/clients';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
-import { dateDuJourLocal } from '@/lib/utils/date';
+
+function dateVersCle(date: Date): string {
+  const annee = date.getFullYear();
+  const mois = String(date.getMonth() + 1).padStart(2, '0');
+  const jour = String(date.getDate()).padStart(2, '0');
+  return `${annee}-${mois}-${jour}`;
+}
 
 export default function ResumeScreen() {
   const { profilActif, definirProfilActif } = useProfilActif();
   const theme = useAppTheme();
   const styles = makeStyles(theme);
   const insets = useSafeAreaInsets();
+  const [dateSelectionnee, setDateSelectionnee] = useState(() => new Date());
+  const [afficherPicker, setAfficherPicker] = useState(false);
   const [totalKg, setTotalKg] = useState(0);
   const [nombreClients, setNombreClients] = useState(0);
   const [nombreNonPaye, setNombreNonPaye] = useState(0);
   const [nombrePayeAr, setNombrePayeAr] = useState(0);
   const [nombrePayeKpk, setNombrePayeKpk] = useState(0);
 
-  const date = dateDuJourLocal();
-  const dateAffichee = new Date().toLocaleDateString('fr-FR', {
+  const date = dateVersCle(dateSelectionnee);
+  const dateFormatee = dateSelectionnee.toLocaleDateString('fr-FR', {
     day: 'numeric',
     month: 'long',
+    year: 'numeric',
   });
-  const dateFormatee =
-    dateAffichee.charAt(0).toUpperCase() + dateAffichee.slice(1);
 
   useFocusEffect(
     useCallback(() => {
@@ -53,6 +62,36 @@ export default function ResumeScreen() {
         subtitle={profilActif?.nom ? `Opérateur : ${profilActif.nom}` : undefined}
         right={<TextButton label="Changer" onPress={() => definirProfilActif(null)} />}
       />
+
+      <View style={styles.dateBar}>
+        <Pressable
+          style={styles.dateBarZone}
+          android_ripple={androidRipple(theme.colors.ripple)}
+          onPress={() => setAfficherPicker(true)}>
+          <MaterialCommunityIcons name="calendar" size={22} color={theme.colors.onSurfaceVariant} />
+          <Text style={styles.dateBarText}>{dateFormatee}</Text>
+        </Pressable>
+        <TextButton label="Aujourd'hui" onPress={() => setDateSelectionnee(new Date())} />
+      </View>
+
+      {afficherPicker && (
+        <DateTimePicker
+          value={dateSelectionnee}
+          mode="date"
+          maximumDate={new Date()}
+          onChange={(event, dateChoisie) => {
+            if (Platform.OS === 'android') {
+              setAfficherPicker(false);
+            }
+            if (event.type === 'set' && dateChoisie) {
+              setDateSelectionnee(dateChoisie);
+            }
+            if (event.type === 'dismissed') {
+              setAfficherPicker(false);
+            }
+          }}
+        />
+      )}
 
       <ScrollView
         style={styles.scroll}
@@ -95,6 +134,29 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+    },
+    dateBar: {
+      backgroundColor: theme.colors.surface,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.outline,
+    },
+    dateBarZone: {
+      flex: 1,
+      minHeight: 48,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.sm,
+    },
+    dateBarText: {
+      flex: 1,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
+      color: theme.colors.onSurface,
     },
     scroll: {
       flex: 1,
