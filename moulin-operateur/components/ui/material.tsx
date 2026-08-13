@@ -6,6 +6,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
+function trouverOpenDrawer(navigation: { openDrawer?: () => void; getParent?: () => unknown }): (() => void) | undefined {
+  let courant: { openDrawer?: () => void; getParent?: () => unknown } | undefined = navigation;
+  while (courant) {
+    if (typeof courant.openDrawer === 'function') {
+      return () => courant!.openDrawer!();
+    }
+    courant = courant.getParent?.() as { openDrawer?: () => void; getParent?: () => unknown } | undefined;
+  }
+  return undefined;
+}
+
 export function androidRipple(color: string, borderless = false) {
   return Platform.OS === 'android' ? { color, borderless, foreground: true } : undefined;
 }
