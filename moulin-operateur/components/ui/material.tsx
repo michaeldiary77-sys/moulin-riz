@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/lib/theme/useAppTheme';
@@ -116,6 +118,17 @@ export function AppBar({
 }) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const ouvrirTiroir = (navigation as { openDrawer?: () => void }).openDrawer;
+  const boutonMenu =
+    left ??
+    (ouvrirTiroir ? (
+      <IconButton accessibilityLabel="Menu" onPress={ouvrirTiroir}>
+        <MaterialCommunityIcons name="menu" size={24} color={theme.colors.onSurface} />
+      </IconButton>
+    ) : (
+      <View style={styles.iconButton} />
+    ));
   return (
     <View
       style={[
@@ -127,7 +140,7 @@ export function AppBar({
         },
       ]}>
       <View style={styles.appBarRow}>
-        {left ?? <View style={styles.iconButton} />}
+        {boutonMenu}
         <View style={styles.appBarTitles}>
           <Text
             numberOfLines={1}

@@ -49,13 +49,6 @@ export default function AccueilScreen() {
       <AppBar
         title="Accueil"
         subtitle={profilActif?.nom ? `Opérateur : ${profilActif.nom}` : undefined}
-        left={
-          <View style={styles.avatar}>
-            <Text style={styles.avatarLetter}>
-              {profilActif?.nom?.charAt(0).toUpperCase() ?? ''}
-            </Text>
-          </View>
-        }
         right={<TextButton label="Changer" onPress={() => definirProfilActif(null)} />}
       />
 
