@@ -101,12 +101,14 @@ export function PopupNouveauClient({
 
             {erreur && <Text style={styles.erreur}>{erreur}</Text>}
 
-            <Pressable style={styles.button} onPress={handleAjouter}>
-              <Text style={styles.buttonText}>Ajouter</Text>
-            </Pressable>
-            <Pressable style={styles.buttonAnnuler} onPress={fermer}>
-              <Text style={styles.buttonText}>Annuler</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <Pressable style={styles.boutonAjouter} onPress={handleAjouter}>
+                <Text style={styles.boutonAjouterTexte}>Ajouter</Text>
+              </Pressable>
+              <Pressable style={styles.boutonAnnuler} onPress={fermer}>
+                <Text style={styles.boutonAnnulerTexte}>Annuler</Text>
+              </Pressable>
+            </View>
           </View>
         </Pressable>
       </Pressable>
