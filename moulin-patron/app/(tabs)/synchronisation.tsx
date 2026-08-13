@@ -30,29 +30,13 @@ export default function SynchronisationScreen() {
     }
   }
 
-  async function exporterTarifsAction() {
-    await executer(async () => {
-      const fichier = await exporterTarifs();
-      await partagerFichier(fichier);
-    });
-  }
-
-  async function exporterDettesAction() {
-    await executer(async () => {
-      const fichier = await exporterDettes();
-      await partagerFichier(fichier);
-    });
-  }
-
   function messageImport(resultat: ResultatImport, libelle: string): string {
     const parties = [
       `${resultat.inseres} ligne(s) importée(s) ou corrigée(s)`,
-      `${resultat.ignores} ignorée(s) (déjà présente${resultat.ignores > 1 ? 's' : ''})`,
+      `${resultat.ignores} ignorée(s)`,
     ];
     if (resultat.supprimes > 0) {
-      parties.push(
-        `${resultat.supprimes} retirée(s) (absent${resultat.supprimes > 1 ? 's' : ''} du fichier)`,
-      );
+      parties.push(`${resultat.supprimes} retirée(s)`);
     }
     return `${parties.join(', ')} dans ${libelle}.`;
   }
@@ -78,62 +62,62 @@ export default function SynchronisationScreen() {
 
   return (
     <View style={styles.container}>
-      <AppBar title="Synchronisation" />
-    <ScrollView contentContainerStyle={styles.content}>
+      <AppBar title="Synchronisation" subtitle="Fichiers CSV avec l'opérateur" />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.sectionTitre}>Exporter vers l'opérateur</Text>
+        <View style={styles.carte}>
+          <FilledButton
+            disabled={occupé}
+            label="Exporter les tarifs (CSV)"
+            icon={<MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />}
+            onPress={() =>
+              executer(async () => {
+                await partagerFichier(await exporterTarifs());
+              })
+            }
+          />
+          <FilledButton
+            disabled={occupé}
+            label="Exporter les dettes (journal complet)"
+            icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
+            onPress={() =>
+              executer(async () => {
+                await partagerFichier(await exporterDettes());
+              })
+            }
+          />
+        </View>
 
-      <View style={styles.texteBlock}>
-        <Text style={styles.texteLabel}>Échanges avec les opérateurs</Text>
-        <Text style={styles.texteTitre}>Importez les journées, envoyez les tarifs</Text>
-      </View>
+        <Text style={styles.sectionTitre}>Importer depuis l'opérateur</Text>
+        <View style={styles.carte}>
+          <FilledButton
+            disabled={occupé}
+            label="Importer une journée (CSV)"
+            icon={
+              <MaterialCommunityIcons name="calendar-check" size={20} color={theme.colors.onPrimary} />
+            }
+            onPress={() => importerFichier(importerJournee, 'la journée')}
+          />
+          <FilledButton
+            disabled={occupé}
+            label="Importer les dettes (CSV)"
+            icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
+            onPress={() => importerFichier(importerDettes, 'les dettes')}
+          />
+        </View>
 
-      <Text style={styles.sectionTitre}>Exporter vers les opérateurs</Text>
-      <View style={styles.carte}>
-        <FilledButton
-          disabled={occupé}
-          label="Exporter les tarifs (CSV)"
-          icon={<MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />}
-          onPress={exporterTarifsAction}
-        />
-
-        <FilledButton
-          disabled={occupé}
-          label="Exporter les dettes (journal complet)"
-          icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
-          onPress={exporterDettesAction}
-        />
-      </View>
-
-      <Text style={styles.sectionTitre}>Importer depuis les opérateurs</Text>
-      <View style={styles.carte}>
-        <FilledButton
-          disabled={occupé}
-          label="Importer une journée (CSV)"
-          icon={<MaterialCommunityIcons name="calendar-check" size={20} color={theme.colors.onPrimary} />}
-          onPress={() => importerFichier(importerJournee, 'la journée')}
-        />
-
-        <FilledButton
-          disabled={occupé}
-          label="Importer les dettes (CSV)"
-          icon={<MaterialCommunityIcons name="cash-sync" size={20} color={theme.colors.onPrimary} />}
-          onPress={() => importerFichier(importerDettes, 'les dettes')}
-        />
-      </View>
-
-      <View style={styles.infoBox}>
-        <MaterialCommunityIcons
-          name="information-outline"
-          size={20}
-          color={theme.colors.onSurfaceVariant}
-        />
-        <Text style={styles.infoText}>
-          Échangez dettes.csv dans les deux sens : chaque téléphone ajoute ses mouvements
-          (ajout, remboursement, annulation). Les lignes déjà connues sont ignorées ; un
-          remboursement ou une correction se propage à l&apos;import. Importez aussi les
-          journées des opérateurs et exportez les tarifs.
-        </Text>
-      </View>
-    </ScrollView>
+        <View style={styles.infoBox}>
+          <MaterialCommunityIcons
+            name="information-outline"
+            size={18}
+            color={theme.colors.onSurfaceVariant}
+          />
+          <Text style={styles.infoText}>
+            Les dettes s'échangent dans les deux sens. Les lignes déjà connues sont ignorées ; un
+            remboursement ou une annulation se propage à l'import.
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -146,20 +130,7 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     content: {
       padding: theme.spacing.md,
-      gap: theme.spacing.md,
-    },
-    texteBlock: {
-      gap: theme.spacing.xs,
-    },
-    texteLabel: {
-      fontFamily: theme.fontFamilies.bodyMedium,
-      fontSize: theme.fontSizes.labelMd,
-      color: theme.colors.onSurfaceVariant,
-    },
-    texteTitre: {
-      fontFamily: theme.fontFamilies.headline,
-      fontSize: theme.fontSizes.headlineMd,
-      color: theme.colors.onSurface,
+      gap: theme.spacing.sm,
     },
     sectionTitre: {
       fontFamily: theme.fontFamilies.bodyMedium,
@@ -169,20 +140,20 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     },
     carte: {
       backgroundColor: theme.colors.surfaceContainer,
-      borderRadius: theme.radius.lg,
-      padding: theme.spacing.md,
+      borderRadius: theme.radius.md,
+      padding: theme.spacing.sm,
       gap: theme.spacing.sm,
     },
     infoBox: {
       backgroundColor: theme.colors.surfaceContainer,
       borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
+      padding: theme.spacing.sm,
       flexDirection: 'row',
       gap: theme.spacing.sm,
     },
     infoText: {
       fontFamily: theme.fontFamilies.body,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: theme.fontSizes.labelMd,
       color: theme.colors.onSurfaceVariant,
       flex: 1,
     },
