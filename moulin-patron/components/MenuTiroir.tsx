@@ -7,7 +7,8 @@ import { androidRipple } from '@/components/ui/material';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
 const ENTREES = [
-  { href: '/', label: 'Tarifs', icone: 'tune' },
+  { href: '/', label: 'Accueil', icone: 'view-dashboard' },
+  { href: '/tarifs', label: 'Tarifs', icone: 'tune' },
   { href: '/journee', label: 'Journées', icone: 'calendar-check' },
   { href: '/dettes-plus', label: 'Dette+', icone: 'cash-plus' },
   { href: '/dettes-moins', label: 'Dette-', icone: 'cash-minus' },

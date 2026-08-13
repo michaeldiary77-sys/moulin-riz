@@ -33,7 +33,17 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: 'Accueil',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tarifs"
+        options={{
           title: 'Tarifs',
+          href: null,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="tune" size={size} color={color} />
           ),

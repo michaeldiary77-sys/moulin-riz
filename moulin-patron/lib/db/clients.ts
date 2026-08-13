@@ -35,6 +35,16 @@ export async function listerClientsDuJour(date: string): Promise<ClientJour[]> {
   );
 }
 
+/** Clients dont la date de journée est entre debut et fin (inclus, AAAA-MM-JJ). */
+export async function listerClientsEntre(debut: string, fin: string): Promise<ClientJour[]> {
+  const db = await openDatabase();
+  return db.getAllAsync<ClientJour>(
+    'SELECT * FROM clients_jour WHERE date >= ? AND date <= ? ORDER BY date ASC, createdAt ASC',
+    debut,
+    fin,
+  );
+}
+
 export type Jour = {
   date: string;
   totalClients: number;
