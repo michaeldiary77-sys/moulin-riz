@@ -111,15 +111,17 @@ export default function DashboardScreen() {
     };
   }, [clients, dettes, corrigees, bornes]);
 
+  function aller(sens: -1 | 1) {
+    const suivant = decalerPeriode(granularite, pivot, intervalle, sens);
+    setPivot(suivant.pivot);
+    setIntervalle(suivant.intervalle);
+  }
+
   function revenirAujourdhui() {
     const j = dateDuJourLocal();
     setGranularite('jour');
     setPivot(j);
     setIntervalle({ debut: j, fin: j });
-  }
-    const suivant = decalerPeriode(granularite, pivot, intervalle, sens);
-    setPivot(suivant.pivot);
-    setIntervalle(suivant.intervalle);
   }
 
   return (
@@ -156,7 +158,7 @@ export default function DashboardScreen() {
             android_ripple={androidRipple(theme.colors.ripple)}
             style={styles.btnAujourdhui}
             onPress={revenirAujourdhui}>
-            <Text style={styles.btnAujourdhuiTexte}>Aujourd'hui</Text>
+            <Text style={styles.btnAujourdhuiTexte}>Aujourd&apos;hui</Text>
           </Pressable>
         </View>
         <IconButton accessibilityLabel="Période suivante" onPress={() => aller(1)}>
@@ -221,6 +223,8 @@ export default function DashboardScreen() {
         <MaterialCommunityIcons name="chart-bar" size={20} color={theme.colors.onPrimary} />
         <Text style={styles.btnGraphTexte}>Accès aux représentations graphiques</Text>
       </Pressable>
+
+      <ScrollView contentContainerStyle={styles.contenu}>
         <Text style={styles.section}>Activité</Text>
         <View style={styles.grille}>
           <CarteKpi titre="Clients" valeur={formaterNombre(kpis.nbClients)} />
@@ -274,10 +278,11 @@ function CarteKpi({
   large?: boolean;
 }) {
   const theme = useAppTheme();
+  const s = kpiStyles(theme);
   return (
-    <View style={[kpiStyles(theme).carte, large && kpiStyles(theme).carteLarge]}>
-      <Text style={kpiStyles(theme).titre}>{titre}</Text>
-      <Text style={[kpiStyles(theme).valeur, accent ? { color: accent } : null]}>{valeur}</Text>
+    <View style={[s.carte, large && s.carteLarge]}>
+      <Text style={s.titre}>{titre}</Text>
+      <Text style={[s.valeur, accent ? { color: accent } : null]}>{valeur}</Text>
     </View>
   );
 }
@@ -350,13 +355,48 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       alignItems: 'center',
       paddingHorizontal: theme.spacing.xs,
     },
-    libellePeriode: {
+    centrePeriode: {
       flex: 1,
+      alignItems: 'center',
+      gap: 4,
+    },
+    libellePeriode: {
       textAlign: 'center',
       fontFamily: theme.fontFamilies.bodyMedium,
       fontSize: theme.fontSizes.bodyMd,
       color: theme.colors.onSurface,
       textTransform: 'capitalize',
+    },
+    btnAujourdhui: {
+      minHeight: 32,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    btnAujourdhuiTexte: {
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.labelMd,
+      color: theme.colors.primary,
+    },
+    btnGraph: {
+      marginHorizontal: theme.spacing.md,
+      marginBottom: theme.spacing.sm,
+      minHeight: 44,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.primary,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.sm,
+      overflow: 'hidden',
+    },
+    btnGraphTexte: {
+      color: theme.colors.onPrimary,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.labelMd,
     },
     intervalleRow: {
       flexDirection: 'row',
