@@ -49,11 +49,26 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="dettes"
+        name="dettes-plus"
         options={{
+<<<<<<< HEAD
           title: 'Dettes',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="cash-sync" size={size} color={color} />
+=======
+          title: 'Dette+',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cash-plus" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="dettes-moins"
+        options={{
+          title: 'Dette-',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cash-minus" size={size} color={color} />
+>>>>>>> 69f2eb7 (Donner au Patron les mêmes actions Dette+ / Dette- que l'opérateur.)
           ),
         }}
       />

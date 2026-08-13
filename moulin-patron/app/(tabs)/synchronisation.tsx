@@ -127,10 +127,10 @@ export default function SynchronisationScreen() {
           color={theme.colors.onSurfaceVariant}
         />
         <Text style={styles.infoText}>
-          Recevez les fichiers CSV de vos opérateurs (Partage à proximité, Bluetooth ou e-mail),
-          puis importez-les ici. Les lignes déjà connues sont ignorées, mais un fichier renvoyé
-          avec des données corrigées met à jour les clients concernés : un fichier peut être
-          importé plusieurs fois sans créer de doublons.
+          Échangez dettes.csv dans les deux sens : chaque téléphone ajoute ses mouvements
+          (ajout, remboursement, annulation). Les lignes déjà connues sont ignorées ; un
+          remboursement ou une correction se propage à l&apos;import. Importez aussi les
+          journées des opérateurs et exportez les tarifs.
         </Text>
       </View>
     </ScrollView>
