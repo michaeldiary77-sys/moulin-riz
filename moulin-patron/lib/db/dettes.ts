@@ -98,8 +98,12 @@ export async function rembourserDette(id: string): Promise<boolean> {
     id,
   );
   if (dette?.clientJourId) {
+    const maintenant = new Date().toISOString();
     await db.runAsync(
-      "UPDATE clients_jour SET statut = 'paye' WHERE id = ? AND statut = 'non_paye'",
+      `UPDATE clients_jour SET statut = 'paye', updatedAt = ?, updatedByDeviceId = ?
+        WHERE id = ? AND statut = 'non_paye'`,
+      maintenant,
+      await obtenirDeviceId(),
       dette.clientJourId,
     );
   }
@@ -186,8 +190,13 @@ export async function supprimerDette(id: string): Promise<void> {
   });
 
   if (dette.clientJourId) {
+    const maintenant = new Date().toISOString();
     await db.runAsync(
-      "UPDATE clients_jour SET statut = 'en_attente', modePaiement = NULL, montant = NULL, encaisseAt = NULL WHERE id = ? AND statut = 'non_paye'",
+      `UPDATE clients_jour SET statut = 'en_attente', modePaiement = NULL, montant = NULL,
+        encaisseAt = NULL, updatedAt = ?, updatedByDeviceId = ?
+        WHERE id = ? AND statut = 'non_paye'`,
+      maintenant,
+      await obtenirDeviceId(),
       dette.clientJourId,
     );
   }

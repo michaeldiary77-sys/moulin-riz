@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, useFonts as usePlusJakartaSans } from '@expo-google-fonts/plus-jakarta-sans';
 import {
@@ -35,20 +35,23 @@ export default function RootLayout() {
     JetBrainsMono_500Medium,
   });
   const allFontsLoaded = fontsLoaded && interLoaded && monoLoaded;
+  const [databaseReady, setDatabaseReady] = useState(false);
 
   useEffect(() => {
-    if (allFontsLoaded) {
+    if (allFontsLoaded && databaseReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [allFontsLoaded]);
+  }, [allFontsLoaded, databaseReady]);
 
   useEffect(() => {
-    initDatabase().catch((error) => {
-      console.error('Erreur lors de l\'initialisation de la base de données :', error);
-    });
+    initDatabase()
+      .then(() => setDatabaseReady(true))
+      .catch((error) => {
+        console.error('Erreur lors de l\'initialisation de la base de données :', error);
+      });
   }, []);
 
-  if (!allFontsLoaded) {
+  if (!allFontsLoaded || !databaseReady) {
     return null;
   }
 

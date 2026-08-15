@@ -8,7 +8,7 @@ import { lireTarifs } from '@/lib/db/tarifs';
 import { computeHash } from './hash';
 import { BOM, construireCSV } from './csv';
 
-const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 2;
 
 const EN_TETE_JOURNEE = [
   'date',
@@ -23,6 +23,12 @@ const EN_TETE_JOURNEE = [
   'deviceId',
   'createdAt',
   'encaisseAt',
+  'tarifArParKg',
+  'tarifArParKpk',
+  'updatedAt',
+  'updatedByDeviceId',
+  'supprime',
+  'supprimeAt',
 ];
 
 const EN_TETE_TARIFS = ['arParKg', 'arParKpk', 'updatedAt'];
@@ -74,7 +80,8 @@ async function construireFichier(
  * Exporte la journée donnée (une ligne par client) dans journee_AAAA-MM-JJ.csv.
  */
 export async function exporterJournee(date: string): Promise<FichierExport> {
-  const clients = await listerClientsDuJour(date);
+  // Les lignes supprimées sont incluses pour propager explicitement leur tombstone.
+  const clients = await listerClientsDuJour(date, true);
   const lignes = clients.map((c) => [
     c.date,
     c.nom,
@@ -88,6 +95,12 @@ export async function exporterJournee(date: string): Promise<FichierExport> {
     c.deviceId,
     c.createdAt,
     c.encaisseAt,
+    c.tarifArParKg,
+    c.tarifArParKpk,
+    c.updatedAt,
+    c.updatedByDeviceId,
+    c.supprime,
+    c.supprimeAt,
   ]);
   return construireFichier('journee', EN_TETE_JOURNEE, lignes, `journee_${date}.csv`);
 }

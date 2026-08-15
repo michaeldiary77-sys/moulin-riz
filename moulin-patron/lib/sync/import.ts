@@ -2,20 +2,19 @@ import { openDatabase } from '@/lib/db/database';
 import { computeHash } from './hash';
 import { BOM, parserLignesCSV } from './csv';
 import { dateDuJourLocal } from '@/lib/utils/date';
+import { doitAppliquerClientEntrant } from './fusion';
 
-const FORMAT_VERSION = 1;
+const VERSIONS_ACCEPTEES = new Set([1, 2]);
 
 const STATUTS_VALIDES = new Set(['en_attente', 'paye', 'non_paye']);
 
 /** Tolérance au-delà de laquelle un horodatage "futur" est jugé anormal. */
 const TOLERANCE_FUTUR_MS = 15 * 60 * 1000;
 
-/** Rang de finalité d'un statut : on ne régresse jamais vers un statut moins avancé. */
-const RANG_STATUT: Record<string, number> = { en_attente: 0, non_paye: 1, paye: 2 };
-
 /** Index des colonnes horodatées (createdAt, encaisseAt, ...) selon le type de fichier. */
 const COLONNES_HORODATEES: Record<'journee' | 'tarifs' | 'dettes', number[]> = {
-  journee: [10, 11],
+  // Les index v2 supplémentaires sont simplement absents dans un fichier v1.
+  journee: [10, 11, 14, 17],
   tarifs: [2],
   dettes: [9, 12],
 };
@@ -128,7 +127,7 @@ function detecterAnomaliesHorloge(
 async function validerContenu(
   contenu: string,
   typeAttendu: 'journee' | 'tarifs' | 'dettes',
-): Promise<{ lignes: string[][]; avertissements: string[] }> {
+): Promise<{ lignes: string[][]; avertissements: string[]; version: number }> {
   const texte = normaliserContenu(contenu);
 
   const premierSaut = texte.indexOf('\n');
@@ -153,7 +152,8 @@ async function validerContenu(
         return [partie.slice(0, index), partie.slice(index + 1)];
       }),
   );
-  if (Number(champsMeta.get('format')) !== FORMAT_VERSION) {
+  const version = Number(champsMeta.get('format'));
+  if (!VERSIONS_ACCEPTEES.has(version)) {
     throw new Error('Version de format non prise en charge.');
   }
   if (champsMeta.get('type') !== typeAttendu) {
@@ -178,7 +178,7 @@ async function validerContenu(
 
   const avertissements = detecterAnomaliesHorloge(champsMeta, lignes, typeAttendu);
 
-  return { lignes: lignes.slice(1), avertissements };
+  return { lignes: lignes.slice(1), avertissements, version };
 }
 
 /**
@@ -191,28 +191,37 @@ async function validerContenu(
  * transactionnelle : une donnée invalide annule tout.
  */
 export async function importerJournee(contenu: string): Promise<ResultatImport> {
-  const { lignes, avertissements } = await validerContenu(contenu, 'journee');
+  const { lignes, avertissements, version } = await validerContenu(contenu, 'journee');
   const db = await openDatabase();
+  const tarifsLocaux = await db.getFirstAsync<{ arParKg: number; arParKpk: number }>(
+    'SELECT arParKg, arParKpk FROM tarifs WHERE id = 1',
+  );
+  const tarifKgRepli = tarifsLocaux?.arParKg ?? 100;
+  const tarifKpkRepli = tarifsLocaux?.arParKpk ?? 500;
 
   let inseres = 0;
   let ignores = 0;
-  let supprimes = 0;
-
-  const idsDuFichier = new Set<string>();
-  const datesDuFichier = new Set<string>();
 
   await db.withExclusiveTransactionAsync(async () => {
     for (const c of lignes) {
-      const [date, nom, kg, modePaiement, montant, statut, profilNom, id, seq, deviceId, createdAt, encaisseAt] =
-        c;
-
+      const [
+        date, nom, kg, modePaiement, montant, statut, profilNom, id, seq, deviceId,
+        createdAt, encaisseAt, tarifArParKg, tarifArParKpk, updatedAt,
+        updatedByDeviceId, supprime, supprimeAt,
+      ] = c;
       const idN = chaineOuNull(id);
       const nomN = chaineOuNull(nom);
       const dateN = chaineOuNull(date);
       const kgN = nombreOuNull(kg);
       const statutN = chaineOuNull(statut) ?? 'en_attente';
+      const seqN = nombreOuNull(seq);
+      const deviceIdN = chaineOuNull(deviceId);
+      const createdAtN = chaineOuNull(createdAt);
 
-      if (!idN || !nomN || !dateN || kgN === null || !STATUTS_VALIDES.has(statutN)) {
+      if (
+        !idN || !nomN || !dateN || kgN === null || kgN <= 0 || !STATUTS_VALIDES.has(statutN) ||
+        seqN === null || !deviceIdN || !createdAtN
+      ) {
         throw new Error(`Donnée invalide dans la journée (client « ${nomN ?? 'inconnu'} »).`);
       }
 
@@ -220,96 +229,65 @@ export async function importerJournee(contenu: string): Promise<ResultatImport> 
       const montantN = nombreOuNull(montant);
       const profilNomN = chaineOuNull(profilNom);
       const encaisseAtN = chaineOuNull(encaisseAt);
-
-      idsDuFichier.add(idN);
-      datesDuFichier.add(dateN);
+      const tarifKgN = version >= 2 ? nombreOuNull(tarifArParKg) : tarifKgRepli;
+      const tarifKpkN = version >= 2 ? nombreOuNull(tarifArParKpk) : tarifKpkRepli;
+      if (tarifKgN === null || tarifKgN <= 0 || tarifKpkN === null || tarifKpkN <= 0) {
+        throw new Error(`Tarif historique invalide pour « ${nomN} ».`);
+      }
+      const updatedAtN =
+        (version >= 2 ? chaineOuNull(updatedAt) : null) ?? encaisseAtN ?? createdAtN;
+      const updatedByN =
+        (version >= 2 ? chaineOuNull(updatedByDeviceId) : null) ?? deviceIdN;
+      const supprimeN = version >= 2 && Number(supprime) === 1 ? 1 : 0;
+      const supprimeAtN = version >= 2 ? chaineOuNull(supprimeAt) : null;
 
       const existant = await db.getFirstAsync<{
         statut: string;
-        nom: string;
-        kg: number;
-        modePaiement: string | null;
-        montant: number | null;
-        profilNom: string | null;
-        encaisseAt: string | null;
-      }>(
-        'SELECT statut, nom, kg, modePaiement, montant, profilNom, encaisseAt FROM clients_jour WHERE id = ?',
-        idN,
-      );
+        updatedAt: string | null;
+        updatedByDeviceId: string | null;
+      }>('SELECT statut, updatedAt, updatedByDeviceId FROM clients_jour WHERE id = ?', idN);
 
       if (!existant) {
         await db.runAsync(
           `INSERT INTO clients_jour
-             (id, date, nom, kg, modePaiement, montant, statut, profilNom, seq, deviceId, createdAt, encaisseAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          idN,
-          dateN,
-          nomN,
-          kgN,
-          modePaiementN,
-          montantN,
-          statutN,
-          profilNomN,
-          nombreOuNull(seq),
-          chaineOuNull(deviceId),
-          chaineOuNull(createdAt),
-          encaisseAtN,
+             (id, date, nom, kg, modePaiement, montant, statut, profilNom, seq, deviceId,
+              createdAt, encaisseAt, tarifArParKg, tarifArParKpk, updatedAt,
+              updatedByDeviceId, supprime, supprimeAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          idN, dateN, nomN, kgN, modePaiementN, montantN, statutN, profilNomN, seqN,
+          deviceIdN, createdAtN, encaisseAtN, tarifKgN, tarifKpkN, updatedAtN,
+          updatedByN, supprimeN, supprimeAtN,
         );
         inseres++;
         continue;
       }
 
-      const identiques =
-        existant.nom === nomN &&
-        existant.kg === kgN &&
-        existant.modePaiement === modePaiementN &&
-        existant.montant === montantN &&
-        existant.statut === statutN &&
-        existant.profilNom === profilNomN &&
-        existant.encaisseAt === encaisseAtN;
-
-      if (identiques) {
+      // Règle métier : le statut le plus final gagne. À statut égal, la
+      // modification (updatedAt + deviceId comme départage déterministe) la plus récente gagne.
+      if (!doitAppliquerClientEntrant(existant, {
+        statut: statutN,
+        updatedAt: updatedAtN,
+        updatedByDeviceId: updatedByN,
+      })) {
         ignores++;
         continue;
       }
 
-      const statutFinal =
-        (RANG_STATUT[statutN] ?? 0) < (RANG_STATUT[existant.statut] ?? 0)
-          ? existant.statut
-          : statutN;
-
       await db.runAsync(
-        `UPDATE clients_jour
-           SET nom = ?, kg = ?, modePaiement = ?, montant = ?, statut = ?, profilNom = ?, encaisseAt = ?
+        `UPDATE clients_jour SET
+           nom = ?, kg = ?, modePaiement = ?, montant = ?, statut = ?, profilNom = ?,
+           encaisseAt = ?, tarifArParKg = ?, tarifArParKpk = ?, updatedAt = ?,
+           updatedByDeviceId = ?, supprime = ?, supprimeAt = ?
          WHERE id = ?`,
-        nomN,
-        kgN,
-        modePaiementN,
-        montantN,
-        statutFinal,
-        profilNomN,
-        encaisseAtN,
-        idN,
+        nomN, kgN, modePaiementN, montantN, statutN, profilNomN, encaisseAtN,
+        tarifKgN, tarifKpkN, updatedAtN, updatedByN, supprimeN, supprimeAtN, idN,
       );
       inseres++;
     }
-
-    if (datesDuFichier.size > 0) {
-      const placeholders = [...datesDuFichier].map(() => '?').join(',');
-      const locaux = await db.getAllAsync<{ id: string }>(
-        `SELECT id FROM clients_jour WHERE statut = 'en_attente' AND date IN (${placeholders})`,
-        ...[...datesDuFichier],
-      );
-      for (const local of locaux) {
-        if (!idsDuFichier.has(local.id)) {
-          await db.runAsync('DELETE FROM clients_jour WHERE id = ?', local.id);
-          supprimes++;
-        }
-      }
-    }
   });
 
-  return { inseres, ignores, supprimes, avertissements };
+  // Une absence dans un fichier n'est jamais interprétée comme une suppression.
+  return { inseres, ignores, supprimes: 0, avertissements };
 }
 
 /**
@@ -383,6 +361,9 @@ export async function importerDettes(contenu: string): Promise<ResultatImport> {
       const rembourseeN = Number(remboursee) === 1 ? 1 : 0;
       const rembourseeAtN = chaineOuNull(rembourseeAt);
       const clientJourIdN = chaineOuNull(clientJourId);
+      const correctionDeN = chaineOuNull(correctionDe);
+      const deviceIdN = chaineOuNull(deviceId);
+      const createdAtN = chaineOuNull(createdAt);
 
       const resultat = await db.runAsync(
         `INSERT OR IGNORE INTO dettes
@@ -394,21 +375,40 @@ export async function importerDettes(contenu: string): Promise<ResultatImport> {
         montantN,
         chaineOuNull(motif),
         chaineOuNull(origine) ?? 'manuel',
-        chaineOuNull(correctionDe),
+        correctionDeN,
         clientJourIdN,
         rembourseeN,
         rembourseeAtN,
         nombreOuNull(seq),
-        chaineOuNull(deviceId),
-        chaineOuNull(createdAt),
+        deviceIdN,
+        createdAtN,
       );
       if (resultat.changes === 1) {
         inseres++;
         if (rembourseeN === 1 && clientJourIdN) {
           await db.runAsync(
-            "UPDATE clients_jour SET statut = 'paye' WHERE id = ? AND statut = 'non_paye'",
+            `UPDATE clients_jour SET statut = 'paye', updatedAt = ?, updatedByDeviceId = ?
+              WHERE id = ? AND statut = 'non_paye'`,
+            rembourseeAtN ?? createdAtN ?? new Date().toISOString(),
+            deviceIdN,
             clientJourIdN,
           );
+        }
+        if (correctionDeN) {
+          const origineCorrigee = await db.getFirstAsync<{ clientJourId: string | null }>(
+            'SELECT clientJourId FROM dettes WHERE id = ?',
+            correctionDeN,
+          );
+          if (origineCorrigee?.clientJourId) {
+            await db.runAsync(
+              `UPDATE clients_jour SET statut = 'en_attente', modePaiement = NULL, montant = NULL,
+                encaisseAt = NULL, updatedAt = ?, updatedByDeviceId = ?
+                WHERE id = ? AND statut = 'non_paye'`,
+              createdAtN ?? new Date().toISOString(),
+              deviceIdN,
+              origineCorrigee.clientJourId,
+            );
+          }
         }
         continue;
       }
@@ -427,7 +427,10 @@ export async function importerDettes(contenu: string): Promise<ResultatImport> {
           inseres++;
           if (clientJourIdN) {
             await db.runAsync(
-              "UPDATE clients_jour SET statut = 'paye' WHERE id = ? AND statut = 'non_paye'",
+              `UPDATE clients_jour SET statut = 'paye', updatedAt = ?, updatedByDeviceId = ?
+                WHERE id = ? AND statut = 'non_paye'`,
+              rembourseeAtN ?? createdAtN ?? new Date().toISOString(),
+              deviceIdN,
               clientJourIdN,
             );
           }

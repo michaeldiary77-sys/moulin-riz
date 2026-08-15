@@ -6,6 +6,9 @@ import { ajouterDette } from './dettes';
 import { lireTarifs } from './tarifs';
 import { dateDuJourLocal } from '../utils/date';
 
+const TARIF_AR_PAR_KG_DEFAUT = 100;
+const TARIF_AR_PAR_KPK_DEFAUT = 500;
+
 export type ClientJour = {
   id: string;
   date: string;
@@ -19,18 +22,22 @@ export type ClientJour = {
   deviceId: string;
   createdAt: string;
   encaisseAt: string | null;
+  tarifArParKg: number;
+  tarifArParKpk: number;
+  updatedAt: string;
+  updatedByDeviceId: string;
+  supprime: 0 | 1;
+  supprimeAt: string | null;
 };
 
-/**
- * Étape 1 (accueil) : seul le nom et le kg sont saisis, le client est créé
- * avec le statut "en_attente" (modePaiement, montant et encaisseAt vides).
- * Étape 2 (encaissement) : encaisserClient() renseigne ensuite le mode de
- * paiement, le montant et le statut final.
- */
-export async function listerClientsDuJour(date: string): Promise<ClientJour[]> {
+/** Les suppressions sont masquées dans l'interface mais incluses dans les exports. */
+export async function listerClientsDuJour(
+  date: string,
+  inclureSupprimes = false,
+): Promise<ClientJour[]> {
   const db = await openDatabase();
   return db.getAllAsync<ClientJour>(
-    'SELECT * FROM clients_jour WHERE date = ? ORDER BY createdAt ASC',
+    `SELECT * FROM clients_jour WHERE date = ?${inclureSupprimes ? '' : ' AND supprime = 0'} ORDER BY createdAt ASC`,
     date,
   );
 }
@@ -42,29 +49,15 @@ export type Jour = {
   nonPaye: number;
 };
 
-/**
- * Liste les journées ayant des clients (dates distinctes) avec quelques
- * agrégats par jour. Utilisé par l'application Patron pour la supervision
- * des journées importées.
- */
 export async function listerJours(): Promise<Jour[]> {
   const db = await openDatabase();
   return db.getAllAsync<Jour>(
-    `SELECT date,
-            COUNT(*) AS totalClients,
-            COALESCE(SUM(kg), 0) AS totalKg,
+    `SELECT date, COUNT(*) AS totalClients, COALESCE(SUM(kg), 0) AS totalKg,
             COALESCE(SUM(CASE WHEN statut = 'non_paye' THEN 1 ELSE 0 END), 0) AS nonPaye
-     FROM clients_jour
-     GROUP BY date
-     ORDER BY date DESC`,
+       FROM clients_jour WHERE supprime = 0 GROUP BY date ORDER BY date DESC`,
   );
 }
 
-/**
- * Ajoute un client à la journée (étape 1 : accueil, statut "en_attente").
- * Règle de blocage : un même nom ne peut pas apparaître deux fois pour une
- * même date (comparaison insensible à la casse et aux espaces en début/fin).
- */
 export async function ajouterClient(params: {
   date: string;
   nom: string;
@@ -72,24 +65,26 @@ export async function ajouterClient(params: {
   profilNom: string | null;
 }): Promise<string> {
   const db = await openDatabase();
-
   const doublon = await db.getFirstAsync<{ id: string }>(
-    'SELECT id FROM clients_jour WHERE date = ? AND LOWER(TRIM(nom)) = LOWER(TRIM(?))',
+    `SELECT id FROM clients_jour
+      WHERE date = ? AND supprime = 0 AND LOWER(TRIM(nom)) = LOWER(TRIM(?))`,
     params.date,
     params.nom,
   );
-  if (doublon) {
-    throw new Error('Ce nom de client existe déjà pour cette date.');
-  }
+  if (doublon) throw new Error('Ce nom de client existe déjà pour cette date.');
 
+  const tarifs = await lireTarifs();
   const id = randomUUID();
   const seq = await obtenirProchaineSeq();
   const deviceId = await obtenirDeviceId();
-  const createdAt = new Date().toISOString();
+  const maintenant = new Date().toISOString();
 
   await db.runAsync(
-    `INSERT INTO clients_jour (id, date, nom, kg, modePaiement, montant, statut, profilNom, seq, deviceId, createdAt, encaisseAt)
-     VALUES (?, ?, ?, ?, NULL, NULL, 'en_attente', ?, ?, ?, ?, NULL)`,
+    `INSERT INTO clients_jour
+       (id, date, nom, kg, modePaiement, montant, statut, profilNom, seq, deviceId,
+        createdAt, encaisseAt, tarifArParKg, tarifArParKpk, updatedAt, updatedByDeviceId,
+        supprime, supprimeAt)
+     VALUES (?, ?, ?, ?, NULL, NULL, 'en_attente', ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0, NULL)`,
     id,
     params.date,
     params.nom,
@@ -97,19 +92,15 @@ export async function ajouterClient(params: {
     params.profilNom,
     seq,
     deviceId,
-    createdAt,
+    maintenant,
+    tarifs?.arParKg ?? TARIF_AR_PAR_KG_DEFAUT,
+    tarifs?.arParKpk ?? TARIF_AR_PAR_KPK_DEFAUT,
+    maintenant,
+    deviceId,
   );
-
   return id;
 }
 
-/**
- * Étape 2 (encaissement) : met à jour la ligne du client avec le mode de
- * paiement, le montant et le statut final, et enregistre la date
- * d'encaissement. C'est une mise à jour normale de la ligne (pas une
- * correction) : les autres colonnes (nom, kg, date, seq...) restent
- * inchangées.
- */
 export async function encaisserClient(params: {
   id: string;
   modePaiement: string;
@@ -117,109 +108,94 @@ export async function encaisserClient(params: {
   statut: 'paye' | 'non_paye';
 }): Promise<void> {
   const db = await openDatabase();
-
-  const client = await db.getFirstAsync<{ statut: string }>(
-    'SELECT statut FROM clients_jour WHERE id = ?',
-    params.id,
-  );
-  if (!client || client.statut !== 'en_attente') {
-    throw new Error('Ce client n\'est plus en attente de paiement.');
-  }
-
-  await db.runAsync(
-    'UPDATE clients_jour SET modePaiement = ?, montant = ?, statut = ?, encaisseAt = ? WHERE id = ?',
+  const deviceId = await obtenirDeviceId();
+  const maintenant = new Date().toISOString();
+  const resultat = await db.runAsync(
+    `UPDATE clients_jour
+        SET modePaiement = ?, montant = ?, statut = ?, encaisseAt = ?,
+            updatedAt = ?, updatedByDeviceId = ?
+      WHERE id = ? AND statut = 'en_attente' AND supprime = 0`,
     params.modePaiement,
     params.montant,
     params.statut,
-    new Date().toISOString(),
+    maintenant,
+    maintenant,
+    deviceId,
     params.id,
   );
+  if (resultat.changes === 0) throw new Error("Ce client n'est plus en attente de paiement.");
 }
 
-/**
- * Modifie le nom et/ou le kg d'un client, uniquement si son statut est
- * encore "en_attente" (un client encaissé ne se corrige pas par ici).
- * Reprend la règle de doublon d'ajouterClient : le nouveau nom ne doit pas
- * exister pour la même date, en excluant ce client lui-même.
- */
-export async function modifierClient(params: {
-  id: string;
-  nom: string;
-  kg: number;
-}): Promise<void> {
+export async function modifierClient(params: { id: string; nom: string; kg: number }): Promise<void> {
   const db = await openDatabase();
-
-  const client = await db.getFirstAsync<{
-    id: string;
-    nom: string;
-    date: string;
-    statut: string;
-  }>('SELECT id, nom, date, statut FROM clients_jour WHERE id = ?', params.id);
-
-  if (!client || client.statut !== 'en_attente') {
+  const client = await db.getFirstAsync<{ date: string; statut: string; supprime: number }>(
+    'SELECT date, statut, supprime FROM clients_jour WHERE id = ?',
+    params.id,
+  );
+  if (!client || client.statut !== 'en_attente' || client.supprime === 1) {
     throw new Error('Seul un client en attente peut être modifié.');
   }
-
   const doublon = await db.getFirstAsync<{ id: string }>(
-    'SELECT id FROM clients_jour WHERE date = ? AND LOWER(TRIM(nom)) = LOWER(TRIM(?)) AND id != ?',
+    `SELECT id FROM clients_jour
+      WHERE date = ? AND supprime = 0 AND LOWER(TRIM(nom)) = LOWER(TRIM(?)) AND id != ?`,
     client.date,
     params.nom,
     params.id,
   );
-  if (doublon) {
-    throw new Error('Ce nom de client existe déjà pour cette date.');
-  }
+  if (doublon) throw new Error('Ce nom de client existe déjà pour cette date.');
 
-  await db.runAsync('UPDATE clients_jour SET nom = ?, kg = ? WHERE id = ?', params.nom, params.kg, params.id);
+  await db.runAsync(
+    'UPDATE clients_jour SET nom = ?, kg = ?, updatedAt = ?, updatedByDeviceId = ? WHERE id = ?',
+    params.nom,
+    params.kg,
+    new Date().toISOString(),
+    await obtenirDeviceId(),
+    params.id,
+  );
 }
 
-/**
- * Supprime un client, uniquement si son statut est encore "en_attente"
- * (un client encaissé reste dans le journal de la journée).
- */
+/** Suppression logique synchronisable : la ligne reste dans le journal CSV. */
 export async function supprimerClient(id: string): Promise<void> {
   const db = await openDatabase();
-
-  const client = await db.getFirstAsync<{ statut: string }>(
-    'SELECT statut FROM clients_jour WHERE id = ?',
+  const maintenant = new Date().toISOString();
+  const resultat = await db.runAsync(
+    `UPDATE clients_jour
+        SET supprime = 1, supprimeAt = ?, updatedAt = ?, updatedByDeviceId = ?
+      WHERE id = ? AND statut = 'en_attente' AND supprime = 0`,
+    maintenant,
+    maintenant,
+    await obtenirDeviceId(),
     id,
   );
-
-  if (!client || client.statut !== 'en_attente') {
-    throw new Error('Seul un client en attente peut être supprimé.');
-  }
-
-  await db.runAsync('DELETE FROM clients_jour WHERE id = ?', id);
+  if (resultat.changes === 0) throw new Error('Seul un client en attente peut être supprimé.');
 }
 
-/**
- * Clôture automatique de fin de journée : tout client resté "en_attente"
- * sur un jour précédent est transformé en "non_paye" avec le montant
- * calculé sur les tarifs actuels (kg × arParKg, en Ar), et une Dette+
- * (origine "auto") est créée pour lui. Retourne le nombre de clients
- * traités. Une erreur sur un client est loggée mais ne bloque pas les
- * suivants.
- */
 export async function cloturerJoursPrecedents(): Promise<number> {
   const db = await openDatabase();
-  const dateDuJour = dateDuJourLocal();
-
-  const enAttente = await db.getAllAsync<{ id: string; nom: string; kg: number }>(
-    "SELECT id, nom, kg FROM clients_jour WHERE statut = 'en_attente' AND date < ?",
-    dateDuJour,
+  const enAttente = await db.getAllAsync<{
+    id: string;
+    nom: string;
+    kg: number;
+    tarifArParKg: number | null;
+  }>(
+    `SELECT id, nom, kg, tarifArParKg FROM clients_jour
+      WHERE statut = 'en_attente' AND supprime = 0 AND date < ?`,
+    dateDuJourLocal(),
   );
-
-  const tarifs = await lireTarifs();
-  const arParKg = tarifs?.arParKg ?? 100;
-
+  const deviceId = await obtenirDeviceId();
   let traites = 0;
+
   for (const client of enAttente) {
     try {
-      const montant = client.kg * arParKg;
+      const montant = client.kg * (client.tarifArParKg ?? TARIF_AR_PAR_KG_DEFAUT);
+      const maintenant = new Date().toISOString();
       await db.runAsync(
-        "UPDATE clients_jour SET modePaiement = 'Ar', montant = ?, statut = 'non_paye', encaisseAt = ? WHERE id = ?",
+        `UPDATE clients_jour SET modePaiement = 'Ar', montant = ?, statut = 'non_paye',
+          encaisseAt = ?, updatedAt = ?, updatedByDeviceId = ? WHERE id = ?`,
         montant,
-        new Date().toISOString(),
+        maintenant,
+        maintenant,
+        deviceId,
         client.id,
       );
       await ajouterDette({
@@ -233,26 +209,19 @@ export async function cloturerJoursPrecedents(): Promise<number> {
       });
       traites++;
     } catch (error) {
-      // Si la création de la dette échoue, on restaure le client en
-      // "en_attente" : sinon il resterait "non_paye" sans dette associée et
-      // ne serait plus jamais retraité par la clôture suivante.
       try {
         await db.runAsync(
-          "UPDATE clients_jour SET statut = 'en_attente', modePaiement = NULL, montant = NULL, encaisseAt = NULL WHERE id = ?",
+          `UPDATE clients_jour SET statut = 'en_attente', modePaiement = NULL, montant = NULL,
+            encaisseAt = NULL, updatedAt = ?, updatedByDeviceId = ? WHERE id = ?`,
+          new Date().toISOString(),
+          deviceId,
           client.id,
         );
       } catch (secondaire) {
-        console.error(
-          `Échec de la restauration du client ${client.id} (${client.nom}) :`,
-          secondaire,
-        );
+        console.error(`Échec de la restauration du client ${client.id} :`, secondaire);
       }
-      console.error(
-        `Erreur lors de la clôture du client ${client.id} (${client.nom}) :`,
-        error,
-      );
+      console.error(`Erreur lors de la clôture du client ${client.id} (${client.nom}) :`, error);
     }
   }
-
   return traites;
 }

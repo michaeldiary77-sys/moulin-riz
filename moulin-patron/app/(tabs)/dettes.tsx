@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DetailDette } from '@/components/DetailDette';
 import { listerDettes, listerIdsCorrections, type Dette } from '@/lib/db/dettes';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
@@ -20,19 +21,20 @@ export default function DettesScreen() {
   const insets = useSafeAreaInsets();
   const [dettes, setDettes] = useState<Dette[]>([]);
   const [corrigees, setCorrigees] = useState<Set<string>>(new Set());
+  const [detteDetail, setDetteDetail] = useState<Dette | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      Promise.all([listerDettes(), listerIdsCorrections()])
-        .then(([liste, ids]) => {
-          setDettes(liste);
-          setCorrigees(new Set(ids));
-        })
-        .catch((error) => {
-          console.error('Erreur lors du chargement des dettes :', error);
-        });
-    }, []),
-  );
+  const charger = useCallback(() => {
+    Promise.all([listerDettes(), listerIdsCorrections()])
+      .then(([liste, ids]) => {
+        setDettes(liste);
+        setCorrigees(new Set(ids));
+      })
+      .catch((error) => {
+        console.error('Erreur lors du chargement des dettes :', error);
+      });
+  }, []);
+
+  useFocusEffect(charger);
 
   const actives = dettes.filter((d) => d.remboursee === 0 && !corrigees.has(d.id));
   const totalARecevoir = actives
@@ -89,8 +91,10 @@ export default function DettesScreen() {
             const couleur = estPlus ? theme.colors.success : theme.colors.error;
             const estCorrigee = corrigees.has(dette.id);
             return (
-              <View
+              <Pressable
                 key={dette.id}
+                disabled={dette.remboursee === 1 || estCorrigee}
+                onPress={() => setDetteDetail(dette)}
                 style={[
                   styles.carte,
                   { borderLeftColor: couleur },
@@ -117,11 +121,19 @@ export default function DettesScreen() {
                     <Text style={styles.carteRembourseeTexte}>Remboursée</Text>
                   ) : null}
                 </View>
-              </View>
+              </Pressable>
             );
           })
         )}
       </ScrollView>
+
+      <DetailDette
+        visible={detteDetail !== null}
+        dette={detteDetail}
+        onFermer={() => setDetteDetail(null)}
+        onRembourse={charger}
+        onSupprime={charger}
+      />
     </View>
   );
 }

@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 import { exporterDettes, exporterJournee, partagerFichier } from '@/lib/sync/export';
-import { importerDettes, importerTarifs, type ResultatImport } from '@/lib/sync/import';
+import { importerDettes, importerJournee, importerTarifs, type ResultatImport } from '@/lib/sync/import';
 
 export default function SynchronisationScreen() {
   const theme = useAppTheme();
@@ -142,6 +142,14 @@ export default function SynchronisationScreen() {
 
         <Text style={styles.sectionTitre}>IMPORTER DEPUIS LE PATRON</Text>
         <View style={styles.carte}>
+          <Pressable
+            style={styles.bouton}
+            onPress={() => importerFichier(importerJournee, 'la journée fusionnée')}
+            disabled={occupé}>
+            <MaterialCommunityIcons name="calendar-import" size={20} color={theme.colors.onPrimary} />
+            <Text style={styles.boutonTexte}>Importer une journée (CSV)</Text>
+          </Pressable>
+
           <Pressable
             style={styles.bouton}
             onPress={() => importerFichier(importerTarifs, 'les tarifs')}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, useFonts as usePlusJakartaSans } from '@expo-google-fonts/plus-jakarta-sans';
 import {
@@ -38,12 +38,13 @@ export default function RootLayout() {
     JetBrainsMono_500Medium,
   });
   const allFontsLoaded = fontsLoaded && interLoaded && monoLoaded;
+  const [databaseReady, setDatabaseReady] = useState(false);
 
   useEffect(() => {
-    if (allFontsLoaded) {
+    if (allFontsLoaded && databaseReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [allFontsLoaded]);
+  }, [allFontsLoaded, databaseReady]);
 
   // Initialisation de la base PUIS clôture automatique des jours
   // précédents : la clôture doit s'exécuter après initDatabase() (qui crée
@@ -55,6 +56,7 @@ export default function RootLayout() {
       await initDatabase();
       const n = await cloturerJoursPrecedents();
       console.log(`Clôture auto : ${n} client(s) traité(s).`);
+      setDatabaseReady(true);
     }
     initialiserApplication().catch((error) => {
       console.error(
@@ -64,7 +66,7 @@ export default function RootLayout() {
     });
   }, []);
 
-  if (!allFontsLoaded) {
+  if (!allFontsLoaded || !databaseReady) {
     return null;
   }
 

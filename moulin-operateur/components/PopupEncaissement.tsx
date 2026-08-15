@@ -2,11 +2,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { encaisserClient } from '@/lib/db/clients';
-import { lireTarifs } from '@/lib/db/tarifs';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
-
-const AR_PAR_KG_DEFAUT = 100;
-const AR_PAR_KPK_DEFAUT = 500;
 
 type ModePaiement = 'Ar' | 'Kpk';
 
@@ -23,30 +19,18 @@ export function PopupEncaissement({
   onEncaisse,
 }: {
   visible: boolean;
-  client: { id: string; nom: string; kg: number } | null;
+  client: { id: string; nom: string; kg: number; tarifArParKg: number; tarifArParKpk: number } | null;
   onFerme: () => void;
   onEncaisse: () => void;
 }) {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
-  const [arParKg, setArParKg] = useState(AR_PAR_KG_DEFAUT);
-  const [arParKpk, setArParKpk] = useState(AR_PAR_KPK_DEFAUT);
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible && client) {
       setErreur(null);
     }
-    lireTarifs()
-      .then((tarifs) => {
-        if (tarifs) {
-          setArParKg(tarifs.arParKg);
-          setArParKpk(tarifs.arParKpk);
-        }
-      })
-      .catch((error) => {
-        console.error('Erreur lors de la lecture des tarifs :', error);
-      });
   }, [visible, client]);
 
   if (!client) {
@@ -54,8 +38,10 @@ export function PopupEncaissement({
   }
 
   const clientCourant = client;
-  const montantAr = clientCourant.kg * arParKg;
-  const montantKpk = Math.round((montantAr / arParKpk) * 100) / 100;
+  const tarifArParKg = clientCourant.tarifArParKg;
+  const tarifArParKpk = clientCourant.tarifArParKpk;
+  const montantAr = clientCourant.kg * tarifArParKg;
+  const montantKpk = Math.round((montantAr / tarifArParKpk) * 100) / 100;
 
   function confirmerEtEncaisser(modePaiement: ModePaiement, montantAffiche: string) {
     Alert.alert(

@@ -4,9 +4,6 @@ const DATABASE_NAME = 'moulin_v2.db';
 
 let db: SQLiteDatabase | null = null;
 
-/**
- * Ouvre la base SQLite "moulin_v2.db" (la crée si elle n'existe pas).
- */
 export async function openDatabase(): Promise<SQLiteDatabase> {
   if (!db) {
     db = await openDatabaseAsync(DATABASE_NAME);
@@ -14,20 +11,14 @@ export async function openDatabase(): Promise<SQLiteDatabase> {
   return db;
 }
 
-/**
- * Crée les tables de l'application si elles n'existent pas déjà.
- * À appeler une seule fois au démarrage de l'app.
- */
 export async function initDatabase(): Promise<void> {
   const database = await openDatabase();
   await database.execAsync(`
-    -- profils : identités des personnes qui utilisent le téléphone (sélecteur "Qui êtes-vous ?")
     CREATE TABLE IF NOT EXISTS profils (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nom TEXT NOT NULL
     );
 
-    -- clients_jour : opérations de moulage d'une journée (import/export via journee.csv)
     CREATE TABLE IF NOT EXISTS clients_jour (
       id TEXT PRIMARY KEY,
       date TEXT NOT NULL,
@@ -40,10 +31,15 @@ export async function initDatabase(): Promise<void> {
       seq INTEGER NOT NULL,
       deviceId TEXT NOT NULL,
       createdAt TEXT NOT NULL,
-      encaisseAt TEXT
+      encaisseAt TEXT,
+      tarifArParKg REAL,
+      tarifArParKpk REAL,
+      updatedAt TEXT,
+      updatedByDeviceId TEXT,
+      supprime INTEGER NOT NULL DEFAULT 0,
+      supprimeAt TEXT
     );
 
-    -- dettes : journal append-only des mouvements de dettes (import/export via dettes.csv)
     CREATE TABLE IF NOT EXISTS dettes (
       id TEXT PRIMARY KEY,
       clientNom TEXT NOT NULL,
@@ -60,7 +56,6 @@ export async function initDatabase(): Promise<void> {
       createdAt TEXT NOT NULL
     );
 
-    -- tarifs : réglages des tarifs du moulin (une seule ligne, id = 1)
     CREATE TABLE IF NOT EXISTS tarifs (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       arParKg REAL NOT NULL,
@@ -68,7 +63,6 @@ export async function initDatabase(): Promise<void> {
       updatedAt TEXT NOT NULL
     );
 
-    -- app_meta : métadonnées de l'appareil (identifiant + compteur de séquence global)
     CREATE TABLE IF NOT EXISTS app_meta (
       deviceId TEXT PRIMARY KEY,
       nextSeq INTEGER NOT NULL
@@ -78,27 +72,68 @@ export async function initDatabase(): Promise<void> {
   await migrer(database);
 }
 
-/**
- * Migration des bases existantes : les colonnes de remboursement des dettes
- * n'existaient pas à la création initiale de la table. On les ajoute via
- * ALTER TABLE si elles manquent (CREATE TABLE IF NOT EXISTS ne modifie pas
- * une table déjà existante).
- */
-async function migrer(database: SQLiteDatabase): Promise<void> {
-  const colonnesDettes = await database.getAllAsync<{ name: string }>(
-    'PRAGMA table_info(dettes)',
-  );
-  const noms = new Set(colonnesDettes.map((c) => c.name));
+async function ajouterColonneSiAbsente(
+  database: SQLiteDatabase,
+  table: string,
+  colonnes: Set<string>,
+  nom: string,
+  definition: string,
+): Promise<void> {
+  if (!colonnes.has(nom)) {
+    await database.execAsync(`ALTER TABLE ${table} ADD COLUMN ${nom} ${definition}`);
+  }
+}
 
-  if (!noms.has('clientJourId')) {
-    await database.execAsync('ALTER TABLE dettes ADD COLUMN clientJourId TEXT');
-  }
-  if (!noms.has('remboursee')) {
-    await database.execAsync(
-      'ALTER TABLE dettes ADD COLUMN remboursee INTEGER NOT NULL DEFAULT 0',
-    );
-  }
-  if (!noms.has('rembourseeAt')) {
-    await database.execAsync('ALTER TABLE dettes ADD COLUMN rembourseeAt TEXT');
-  }
+async function migrer(database: SQLiteDatabase): Promise<void> {
+  const colonnesDettes = new Set(
+    (await database.getAllAsync<{ name: string }>('PRAGMA table_info(dettes)')).map((c) => c.name),
+  );
+  await ajouterColonneSiAbsente(database, 'dettes', colonnesDettes, 'clientJourId', 'TEXT');
+  await ajouterColonneSiAbsente(
+    database,
+    'dettes',
+    colonnesDettes,
+    'remboursee',
+    'INTEGER NOT NULL DEFAULT 0',
+  );
+  await ajouterColonneSiAbsente(database, 'dettes', colonnesDettes, 'rembourseeAt', 'TEXT');
+
+  const colonnesClients = new Set(
+    (await database.getAllAsync<{ name: string }>('PRAGMA table_info(clients_jour)')).map(
+      (c) => c.name,
+    ),
+  );
+  await ajouterColonneSiAbsente(database, 'clients_jour', colonnesClients, 'tarifArParKg', 'REAL');
+  await ajouterColonneSiAbsente(database, 'clients_jour', colonnesClients, 'tarifArParKpk', 'REAL');
+  await ajouterColonneSiAbsente(database, 'clients_jour', colonnesClients, 'updatedAt', 'TEXT');
+  await ajouterColonneSiAbsente(
+    database,
+    'clients_jour',
+    colonnesClients,
+    'updatedByDeviceId',
+    'TEXT',
+  );
+  await ajouterColonneSiAbsente(
+    database,
+    'clients_jour',
+    colonnesClients,
+    'supprime',
+    'INTEGER NOT NULL DEFAULT 0',
+  );
+  await ajouterColonneSiAbsente(database, 'clients_jour', colonnesClients, 'supprimeAt', 'TEXT');
+
+  // Les anciennes lignes reçoivent le tarif local actuel, ou les valeurs métier par défaut.
+  const tarifs = await database.getFirstAsync<{ arParKg: number; arParKpk: number }>(
+    'SELECT arParKg, arParKpk FROM tarifs WHERE id = 1',
+  );
+  await database.runAsync(
+    `UPDATE clients_jour
+       SET tarifArParKg = COALESCE(tarifArParKg, ?),
+           tarifArParKpk = COALESCE(tarifArParKpk, ?),
+           updatedAt = COALESCE(updatedAt, encaisseAt, createdAt),
+           updatedByDeviceId = COALESCE(updatedByDeviceId, deviceId),
+           supprime = COALESCE(supprime, 0)`,
+    tarifs?.arParKg ?? 100,
+    tarifs?.arParKpk ?? 500,
+  );
 }

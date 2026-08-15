@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { File } from 'expo-file-system';
 
 import { useAppTheme } from '@/lib/theme/useAppTheme';
-import { exporterDettes, exporterTarifs, partagerFichier } from '@/lib/sync/export';
+import { exporterDettes, exporterJournee, exporterTarifs, partagerFichier } from '@/lib/sync/export';
 import { importerDettes, importerJournee, type ResultatImport } from '@/lib/sync/import';
 
 export default function SynchronisationScreen() {
   const theme = useAppTheme();
   const styles = makeStyles(theme);
   const [occupé, setOccupé] = useState(false);
+  const [dateSelectionnee, setDateSelectionnee] = useState(() => new Date());
+  const [afficherPicker, setAfficherPicker] = useState(false);
+
+  const dateAffichee = `${dateSelectionnee.getFullYear()}-${String(dateSelectionnee.getMonth() + 1).padStart(2, '0')}-${String(dateSelectionnee.getDate()).padStart(2, '0')}`;
 
   async function executer(operation: () => Promise<void>) {
     if (occupé) {
@@ -27,6 +32,13 @@ export default function SynchronisationScreen() {
     } finally {
       setOccupé(false);
     }
+  }
+
+  async function exporterJourneeAction() {
+    await executer(async () => {
+      const fichier = await exporterJournee(dateAffichee);
+      await partagerFichier(fichier);
+    });
   }
 
   async function exporterTarifsAction() {
@@ -92,6 +104,15 @@ export default function SynchronisationScreen() {
 
       <Text style={styles.sectionTitre}>EXPORTER VERS LES OPÉRATEURS</Text>
       <View style={styles.carte}>
+        <Pressable style={styles.boutonSecondaire} onPress={() => setAfficherPicker(true)}>
+          <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+          <Text style={styles.boutonSecondaireTexte}>Journée du {dateAffichee}</Text>
+        </Pressable>
+        <Pressable style={styles.bouton} onPress={exporterJourneeAction} disabled={occupé}>
+          <MaterialCommunityIcons name="calendar-export" size={20} color={theme.colors.onPrimary} />
+          <Text style={styles.boutonTexte}>Exporter la journée fusionnée</Text>
+        </Pressable>
+
         <Pressable style={styles.bouton} onPress={exporterTarifsAction} disabled={occupé}>
           <MaterialCommunityIcons name="tune" size={20} color={theme.colors.onPrimary} />
           <Text style={styles.boutonTexte}>Exporter les tarifs (CSV)</Text>
@@ -129,12 +150,22 @@ export default function SynchronisationScreen() {
           color={theme.colors.onSurfaceVariant}
         />
         <Text style={styles.infoText}>
-          Recevez les fichiers CSV de vos opérateurs (Partage à proximité, Bluetooth ou e-mail),
-          puis importez-les ici. Les lignes déjà connues sont ignorées, mais un fichier renvoyé
-          avec des données corrigées met à jour les clients concernés : un fichier peut être
-          importé plusieurs fois sans créer de doublons.
+          Les journées sont fusionnées par identifiant, sans suppression implicite. Après les
+          imports, exportez la journée consolidée pour la renvoyer aux opérateurs.
         </Text>
       </View>
+
+      {afficherPicker && (
+        <DateTimePicker
+          value={dateSelectionnee}
+          mode="date"
+          maximumDate={new Date()}
+          onChange={(_, date) => {
+            setAfficherPicker(false);
+            if (date) setDateSelectionnee(date);
+          }}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -203,6 +234,21 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: theme.spacing.sm,
+    },
+    boutonSecondaire: {
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      borderRadius: theme.radius.md,
+      padding: theme.spacing.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.sm,
+    },
+    boutonSecondaireTexte: {
+      color: theme.colors.primary,
+      fontFamily: theme.fontFamilies.headlineSemiBold,
+      fontSize: theme.fontSizes.bodyMd,
     },
     boutonTexte: {
       color: theme.colors.onPrimary,
