@@ -1,5 +1,6 @@
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FilledButton, TextButton } from '@/components/ui/material';
 import { rembourserDette, supprimerDette, type Dette } from '@/lib/db/dettes';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
 
@@ -109,7 +110,7 @@ export function DetailDette({
   const estRemboursable = dette?.remboursee === 0;
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onFermer}>
       <Pressable style={styles.overlay} onPress={onFermer}>
         <Pressable onPress={() => {}}>
           <View style={styles.popup}>
@@ -162,21 +163,15 @@ export function DetailDette({
               )}
             </View>
 
-            {estRemboursable ? (
-              <Pressable style={styles.button} onPress={rembourser}>
-                <Text style={styles.buttonText}>Rembourser</Text>
-              </Pressable>
-            ) : null}
+            {estRemboursable ? <FilledButton label="Rembourser" onPress={rembourser} /> : null}
 
             {onSupprime && dette ? (
-              <Pressable style={styles.buttonSupprimer} onPress={supprimer}>
-                <Text style={styles.buttonSupprimerText}>Supprimer</Text>
-              </Pressable>
+              <TextButton label="Annuler la dette" onPress={supprimer} />
             ) : null}
 
-            <Pressable style={styles.buttonAnnuler} onPress={onFermer}>
-              <Text style={styles.buttonAnnulerText}>Fermer</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <TextButton label="Fermer" onPress={onFermer} />
+            </View>
           </View>
         </Pressable>
       </Pressable>
@@ -229,43 +224,9 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
     statutRemboursee: {
       color: theme.colors.success,
     },
-    button: {
-      backgroundColor: theme.colors.primary,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
-      marginTop: theme.spacing.md,
-    },
-    buttonText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.bodyMedium,
-      color: theme.colors.onPrimary,
-    },
-    buttonSupprimer: {
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      borderWidth: 1,
-      borderColor: theme.colors.error,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
-      marginTop: theme.spacing.sm,
-    },
-    buttonSupprimerText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.bodyMedium,
-      color: theme.colors.error,
-    },
-    buttonAnnuler: {
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
-      marginTop: theme.spacing.sm,
-    },
-    buttonAnnulerText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
-      color: theme.colors.onSurfaceVariant,
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
     },
   });
 }

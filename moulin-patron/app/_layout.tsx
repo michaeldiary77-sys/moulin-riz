@@ -12,13 +12,15 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { initDatabase } from '@/lib/db/database';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  anchor: '(drawer)',
 };
 
 export default function RootLayout() {
@@ -56,13 +58,14 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="journee-detail" options={{ title: 'Journée' }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+          <Stack.Screen name="journee-detail" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

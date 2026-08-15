@@ -101,12 +101,14 @@ export function PopupNouveauClient({
 
             {erreur && <Text style={styles.erreur}>{erreur}</Text>}
 
-            <Pressable style={styles.button} onPress={handleAjouter}>
-              <Text style={styles.buttonText}>Ajouter</Text>
-            </Pressable>
-            <Pressable style={styles.buttonAnnuler} onPress={fermer}>
-              <Text style={styles.buttonText}>Annuler</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <Pressable style={styles.boutonAjouter} onPress={handleAjouter}>
+                <Text style={styles.boutonAjouterTexte}>Ajouter</Text>
+              </Pressable>
+              <Pressable style={styles.boutonAnnuler} onPress={fermer}>
+                <Text style={styles.boutonAnnulerTexte}>Annuler</Text>
+              </Pressable>
+            </View>
           </View>
         </Pressable>
       </Pressable>
@@ -118,60 +120,75 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.4)',
+      backgroundColor: theme.colors.scrim,
       justifyContent: 'center',
       padding: theme.spacing.lg,
     },
     popup: {
-      backgroundColor: theme.colors.surfaceContainer,
+      backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.lg,
       padding: theme.spacing.lg,
       gap: theme.spacing.sm,
+      ...theme.elevation.fab,
     },
     title: {
       fontSize: theme.fontSizes.headlineSm,
       fontFamily: theme.fontFamilies.headline,
       color: theme.colors.onSurface,
       marginBottom: theme.spacing.sm,
-      textAlign: 'center',
     },
     label: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
-      color: theme.colors.onSurface,
+      fontSize: theme.fontSizes.labelMd,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.sm,
     },
     input: {
       borderWidth: 1,
       borderColor: theme.colors.outline,
-      borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
+      borderRadius: theme.radius.sm,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
       fontSize: theme.fontSizes.bodyMd,
       fontFamily: theme.fontFamilies.body,
       color: theme.colors.onSurface,
+      backgroundColor: theme.colors.surfaceContainer,
     },
     erreur: {
       color: theme.colors.error,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: theme.fontSizes.labelMd,
     },
-    button: {
-      backgroundColor: theme.colors.primary,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
+    actions: {
       marginTop: theme.spacing.md,
+      gap: theme.spacing.sm,
     },
-    buttonAnnuler: {
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
+    boutonAjouter: {
+      minHeight: 48,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.primary,
       alignItems: 'center',
-      marginTop: theme.spacing.sm,
+      justifyContent: 'center',
+      overflow: 'hidden',
     },
-    buttonText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
+    boutonAjouterTexte: {
       color: theme.colors.onPrimary,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
+    },
+    boutonAnnuler: {
+      minHeight: 48,
+      borderRadius: theme.radius.xl,
+      backgroundColor: theme.colors.surfaceContainerHigh,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    boutonAnnulerTexte: {
+      color: theme.colors.onSurface,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      fontSize: theme.fontSizes.bodyMd,
     },
   });
 }

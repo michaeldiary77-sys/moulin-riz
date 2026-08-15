@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { FilledButton, TextButton } from '@/components/ui/material';
 import { modifierClient, type ClientJour } from '@/lib/db/clients';
 import { useStabiliteClavier } from '@/lib/hooks/useStabiliteClavier';
 import { useAppTheme } from '@/lib/theme/useAppTheme';
@@ -71,7 +72,7 @@ export function PopupModifierClient({
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={fermer}>
       <Pressable style={styles.overlay} onPress={Keyboard.dismiss}>
         <Pressable onPress={() => {}}>
           <View style={styles.popup}>
@@ -91,12 +92,10 @@ export function PopupModifierClient({
 
             {erreur && <Text style={styles.erreur}>{erreur}</Text>}
 
-            <Pressable style={styles.button} onPress={handleModifier}>
-              <Text style={styles.buttonText}>Enregistrer</Text>
-            </Pressable>
-            <Pressable style={styles.buttonAnnuler} onPress={fermer}>
-              <Text style={styles.buttonText}>Annuler</Text>
-            </Pressable>
+            <View style={styles.actions}>
+              <TextButton label="Annuler" onPress={fermer} />
+              <FilledButton label="Enregistrer" onPress={handleModifier} />
+            </View>
           </View>
         </Pressable>
       </Pressable>
@@ -108,60 +107,50 @@ function makeStyles(theme: ReturnType<typeof useAppTheme>) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.4)',
+      backgroundColor: theme.colors.scrim,
       justifyContent: 'center',
       padding: theme.spacing.lg,
     },
     popup: {
-      backgroundColor: theme.colors.surfaceContainer,
+      backgroundColor: theme.colors.surface,
       borderRadius: theme.radius.lg,
       padding: theme.spacing.lg,
       gap: theme.spacing.sm,
+      ...theme.elevation.fab,
     },
     title: {
       fontSize: theme.fontSizes.headlineSm,
       fontFamily: theme.fontFamilies.headline,
       color: theme.colors.onSurface,
       marginBottom: theme.spacing.sm,
-      textAlign: 'center',
     },
     label: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
-      color: theme.colors.onSurface,
+      fontSize: theme.fontSizes.labelMd,
+      fontFamily: theme.fontFamilies.bodyMedium,
+      color: theme.colors.onSurfaceVariant,
       marginTop: theme.spacing.sm,
     },
     input: {
       borderWidth: 1,
       borderColor: theme.colors.outline,
-      borderRadius: theme.radius.md,
-      padding: theme.spacing.md,
+      borderRadius: theme.radius.sm,
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
       fontSize: theme.fontSizes.bodyMd,
       fontFamily: theme.fontFamilies.body,
       color: theme.colors.onSurface,
+      backgroundColor: theme.colors.surfaceContainer,
     },
     erreur: {
       color: theme.colors.error,
-      fontSize: theme.fontSizes.bodyMd,
+      fontSize: theme.fontSizes.labelMd,
     },
-    button: {
-      backgroundColor: theme.colors.primary,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
+    actions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
       alignItems: 'center',
+      gap: theme.spacing.sm,
       marginTop: theme.spacing.md,
-    },
-    buttonAnnuler: {
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      padding: theme.spacing.md,
-      borderRadius: theme.radius.md,
-      alignItems: 'center',
-      marginTop: theme.spacing.sm,
-    },
-    buttonText: {
-      fontSize: theme.fontSizes.bodyMd,
-      fontFamily: theme.fontFamilies.body,
-      color: theme.colors.onPrimary,
     },
   });
 }
