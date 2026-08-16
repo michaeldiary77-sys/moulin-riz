@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, useFonts as usePlusJakartaSans } from '@expo-google-fonts/plus-jakarta-sans';
 import {
@@ -18,6 +20,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { cloturerJoursPrecedents } from '@/lib/db/clients';
 import { initDatabase } from '@/lib/db/database';
 import { ProfilActifProvider, useProfilActif } from '@/lib/context/ProfilActifContext';
+import { useAppTheme } from '@/lib/theme/useAppTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -39,34 +42,61 @@ export default function RootLayout() {
   });
   const allFontsLoaded = fontsLoaded && interLoaded && monoLoaded;
   const [databaseReady, setDatabaseReady] = useState(false);
+  const [erreurInit, setErreurInit] = useState<string | null>(null);
+  const [tentative, setTentative] = useState(0);
 
   useEffect(() => {
-    if (allFontsLoaded && databaseReady) {
+    if (allFontsLoaded && (databaseReady || erreurInit)) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [allFontsLoaded, databaseReady]);
+  }, [allFontsLoaded, databaseReady, erreurInit]);
 
   // Initialisation de la base PUIS clôture automatique des jours
   // précédents : la clôture doit s'exécuter après initDatabase() (qui crée
   // les tables), sinon elle pourrait lire des tables inexistantes sur une
   // base neuve. Tout client encore "en_attente" sur une date passée passe
   // en "non_paye" avec une Dette+ créée automatiquement.
+  // En cas d'échec (base corrompue, stockage plein...), on affiche un écran
+  // d'erreur avec un bouton pour réessayer plutôt que de rester bloqué sur
+  // le splash screen indéfiniment.
   useEffect(() => {
+    let annule = false;
     async function initialiserApplication() {
-      await initDatabase();
-      const n = await cloturerJoursPrecedents();
-      console.log(`Clôture auto : ${n} client(s) traité(s).`);
-      setDatabaseReady(true);
+      try {
+        await initDatabase();
+        const n = await cloturerJoursPrecedents();
+        console.log(`Clôture auto : ${n} client(s) traité(s).`);
+        if (!annule) {
+          setErreurInit(null);
+          setDatabaseReady(true);
+        }
+      } catch (error) {
+        console.error(
+          'Erreur lors de l\'initialisation ou de la clôture automatique des jours précédents :',
+          error,
+        );
+        if (!annule) {
+          setErreurInit(
+            error instanceof Error ? error.message : 'Erreur inconnue au démarrage.',
+          );
+        }
+      }
     }
-    initialiserApplication().catch((error) => {
-      console.error(
-        'Erreur lors de l\'initialisation ou de la clôture automatique des jours précédents :',
-        error,
-      );
-    });
-  }, []);
+    initialiserApplication();
+    return () => {
+      annule = true;
+    };
+  }, [tentative]);
 
-  if (!allFontsLoaded || !databaseReady) {
+  if (!allFontsLoaded) {
+    return null;
+  }
+
+  if (erreurInit) {
+    return <EcranErreurDemarrage message={erreurInit} onReessayer={() => setTentative((t) => t + 1)} />;
+  }
+
+  if (!databaseReady) {
     return null;
   }
 
@@ -95,5 +125,66 @@ function ContenuApplication() {
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
+  );
+}
+
+function EcranErreurDemarrage({
+  message,
+  onReessayer,
+}: {
+  message: string;
+  onReessayer: () => void;
+}) {
+  const theme = useAppTheme();
+  return (
+    <SafeAreaProvider>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: theme.spacing.xl,
+          gap: theme.spacing.md,
+          backgroundColor: theme.colors.background,
+        }}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color={theme.colors.error} />
+        <Text
+          style={{
+            fontFamily: theme.fontFamilies.headlineSemiBold,
+            fontSize: theme.fontSizes.headlineSm,
+            color: theme.colors.onSurface,
+            textAlign: 'center',
+          }}>
+          Impossible de démarrer l&apos;application
+        </Text>
+        <Text
+          style={{
+            fontFamily: theme.fontFamilies.body,
+            fontSize: theme.fontSizes.bodyMd,
+            color: theme.colors.onSurfaceVariant,
+            textAlign: 'center',
+          }}>
+          {message}
+        </Text>
+        <Pressable
+          onPress={onReessayer}
+          style={{
+            backgroundColor: theme.colors.primary,
+            borderRadius: theme.radius.md,
+            paddingVertical: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.lg,
+            marginTop: theme.spacing.sm,
+          }}>
+          <Text
+            style={{
+              fontFamily: theme.fontFamilies.headlineSemiBold,
+              fontSize: theme.fontSizes.bodyMd,
+              color: theme.colors.onPrimary,
+            }}>
+            Réessayer
+          </Text>
+        </Pressable>
+      </View>
+    </SafeAreaProvider>
   );
 }
