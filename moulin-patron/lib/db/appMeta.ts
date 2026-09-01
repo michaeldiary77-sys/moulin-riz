@@ -9,22 +9,14 @@ import { openDatabase } from './database';
  */
 export async function obtenirDeviceId(): Promise<string> {
   const db = await openDatabase();
-  // Lecture puis création dans une transaction exclusive : sans elle, deux
-  // appels concurrents au tout premier lancement pourraient chacun ne rien
-  // trouver et créer deux deviceId différents pour le même appareil.
-  let deviceId = '';
-  await db.withExclusiveTransactionAsync(async () => {
-    const ligne = await db.getFirstAsync<{ deviceId: string }>(
-      'SELECT deviceId FROM app_meta LIMIT 1',
-    );
-    if (ligne) {
-      deviceId = ligne.deviceId;
-      return;
-    }
-    deviceId = randomUUID();
-    await db.runAsync('INSERT INTO app_meta (deviceId, nextSeq) VALUES (?, 1)', deviceId);
-  });
-  return deviceId;
+  const ligne = await db.getFirstAsync<{ deviceId: string }>('SELECT deviceId FROM app_meta LIMIT 1');
+  if (ligne) {
+    return ligne.deviceId;
+  }
+  const deviceId = randomUUID();
+  await db.runAsync('INSERT OR IGNORE INTO app_meta (deviceId, nextSeq) VALUES (?, 1)', deviceId);
+  const relue = await db.getFirstAsync<{ deviceId: string }>('SELECT deviceId FROM app_meta LIMIT 1');
+  return relue?.deviceId ?? deviceId;
 }
 
 /**

@@ -43,45 +43,77 @@ export default function RootLayout() {
   const [databaseReady, setDatabaseReady] = useState(false);
   const [erreurInit, setErreurInit] = useState<string | null>(null);
   const [tentative, setTentative] = useState(0);
+  const pret = allFontsLoaded && databaseReady;
 
+  // L'écran d'erreur (et la fermeture du splash) ne doit JAMAIS être
+  // conditionné par allFontsLoaded : si les polices restent bloquées,
+  // l'erreur doit quand même pouvoir s'afficher (avec la police système
+  // par défaut), sinon on reste coincé sur le splash sans aucun message,
+  // quelle que soit la cause réelle du blocage.
   useEffect(() => {
-    if (allFontsLoaded && (databaseReady || erreurInit)) {
+    if (pret || erreurInit) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [allFontsLoaded, databaseReady, erreurInit]);
+  }, [pret, erreurInit]);
 
-  // En cas d'échec (base corrompue, stockage plein...), on affiche un écran
-  // d'erreur avec un bouton pour réessayer plutôt que de rester bloqué sur
-  // le splash screen indéfiniment.
+  // Délai de sécurité global : si les polices OU la base ne sont pas
+  // prêtes après ce délai, on affiche une erreur qui indique laquelle des
+  // deux bloque, plutôt que de rester bloqué indéfiniment sur le splash
+  // sans aucune information exploitable.
   useEffect(() => {
-    let annule = false;
+    if (pret) {
+      return;
+    }
+    const DELAI_MAX_MS = 15000;
+    const id = setTimeout(() => {
+      setErreurInit(
+        (actuel) =>
+          actuel ??
+          `Démarrage trop long (plus de 15 secondes). Polices : ${
+            allFontsLoaded ? 'chargées' : 'bloquées'
+          }. Base de données : ${
+            databaseReady ? 'prête' : 'bloquée'
+          }. Réessayez ; si le problème persiste, redémarrez le téléphone ou réinstallez l'application.`,
+      );
+    }, DELAI_MAX_MS);
+    return () => clearTimeout(id);
+  }, [pret, allFontsLoaded, databaseReady, tentative]);
+
+  useEffect(() => {
+    let regle = false;
     initDatabase()
       .then(() => {
-        if (!annule) {
-          setErreurInit(null);
+        if (!regle) {
+          regle = true;
           setDatabaseReady(true);
         }
       })
       .catch((error) => {
         console.error('Erreur lors de l\'initialisation de la base de données :', error);
-        if (!annule) {
+        if (!regle) {
+          regle = true;
           setErreurInit(error instanceof Error ? error.message : 'Erreur inconnue au démarrage.');
         }
       });
     return () => {
-      annule = true;
+      regle = true;
     };
   }, [tentative]);
 
-  if (!allFontsLoaded) {
-    return null;
-  }
-
   if (erreurInit) {
-    return <EcranErreurDemarrage message={erreurInit} onReessayer={() => setTentative((t) => t + 1)} />;
+    return (
+      <EcranErreurDemarrage
+        message={erreurInit}
+        onReessayer={() => {
+          setErreurInit(null);
+          setDatabaseReady(false);
+          setTentative((t) => t + 1);
+        }}
+      />
+    );
   }
 
-  if (!databaseReady) {
+  if (!pret) {
     return null;
   }
 
